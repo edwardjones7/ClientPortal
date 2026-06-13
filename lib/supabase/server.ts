@@ -13,6 +13,8 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // All portal tables live in the dedicated `portal` schema.
+      db: { schema: "portal" },
       cookies: {
         getAll() {
           return cookieStore.getAll();

@@ -27,7 +27,7 @@ export function RealtimeRefresh({
       .channel(channel)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table, filter },
+        { event: "*", schema: "portal", table, filter },
         () => router.refresh(),
       )
       .subscribe();

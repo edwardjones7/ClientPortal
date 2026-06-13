@@ -54,7 +54,7 @@ export function ChatRoom({
         "postgres_changes",
         {
           event: "INSERT",
-          schema: "public",
+          schema: "portal",
           table: "chat_messages",
           filter: `org_id=eq.${orgId}`,
         },

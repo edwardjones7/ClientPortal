@@ -5,13 +5,15 @@ website and software updates, track them through to done, and chat with Elenos
 in real time. Elenos manages every client from a built-in admin area.
 
 This is the third Elenos surface, alongside the marketing **website** and the
-**admin dashboard**. It shares one Supabase project with the dashboard, so a
-lead becomes a client with no re-entry.
+**admin dashboard**. It reuses the **website's Supabase project** but lives
+entirely in its own dedicated **`portal` schema** — hard-isolated from the
+website's `public` tables (inbox, form submissions), so nothing collides and the
+website's data is never touched.
 
 ## Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) on **Vercel**
-- **Supabase** — Postgres, Auth, Realtime, Storage (shared with the dashboard)
+- **Supabase** — Postgres, Auth, Realtime, Storage (website project, `portal` schema)
 - **Tailwind v4** — Elenos dark, high-contrast design language
 - `@supabase/ssr` for cookie-based auth across server/client/proxy
 
@@ -45,8 +47,10 @@ Required env (`.env.local`):
 
 ### 2. Database
 
-Apply `supabase/migrations/0001_init_portal.sql` (SQL editor or `supabase db
-push`) and bootstrap your admin account. Full steps + the security model:
+Against the **website's** Supabase project: apply
+`supabase/migrations/0001_init_portal.sql` (it creates an isolated `portal`
+schema — nothing in `public` is touched), **add `portal` to the API's exposed
+schemas**, then bootstrap your admin account. Full steps + the security model:
 [`supabase/README.md`](supabase/README.md).
 
 ### 3. Supabase Auth configuration (one-time)
@@ -96,21 +100,21 @@ With two browser sessions (you as admin, a test client):
 
 ### RLS isolation (the gating security check)
 
-Because the database is shared, prove a client can never see another org's
-data — at the API layer, not just the UI:
+Every client org lives in the one `portal` schema, so prove a client can never
+see another org's data — at the API layer, not just the UI:
 
 1. Create two orgs A and B, each with one client and one ticket.
 2. As client A (anon key + A's session), query org B's rows directly:
 
 ```sql
 -- Expect ZERO rows for every one of these, run as client A:
-select * from tickets         where org_id = '<ORG_B_ID>';
-select * from ticket_comments;   -- only A's comments come back
-select * from chat_messages   where org_id = '<ORG_B_ID>';
+select * from portal.tickets        where org_id = '<ORG_B_ID>';
+select * from portal.ticket_comments;   -- only A's comments come back
+select * from portal.chat_messages  where org_id = '<ORG_B_ID>';
 ```
 
-3. Confirm a client cannot escalate: `update profiles set role='admin' where
-   id = auth.uid();` must fail (guarded by a trigger).
+3. Confirm a client cannot escalate: `update portal.profiles set role='admin'
+   where id = auth.uid();` must fail (guarded by a trigger).
 4. Confirm attachment isolation: client A cannot create a signed URL for an
    object under `B's org_id/...`.
 
