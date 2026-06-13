@@ -9,6 +9,8 @@ export interface SettingsState {
   ok?: boolean;
   error?: string;
   message?: string;
+  /** Invite link for the owner to send to their teammate. */
+  link?: string;
 }
 
 /** Update the signed-in user's display name. */
@@ -44,5 +46,9 @@ export async function inviteTeammate(
   if (!result.ok) return { error: result.error };
 
   revalidatePath("/settings");
-  return { ok: true, message: `Invited ${email}.` };
+  return {
+    ok: true,
+    message: `Send ${email} this link to join:`,
+    link: result.link,
+  };
 }

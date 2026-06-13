@@ -8,12 +8,19 @@ function siteUrl() {
 export interface InviteResult {
   ok: boolean;
   error?: string;
+  /** A ready-to-send invite link the admin copies and sends to the client. */
+  link?: string;
 }
 
 /**
- * Invite a user into an organization. Creates the auth user (sending Supabase's
- * invite email) and the matching profile row. Service-role only — callers MUST
- * authorize first (admin, or a client inviting into their own org).
+ * Invite a user into an organization. Creates the auth user, links the profile,
+ * and returns a self-contained invite LINK for the admin to send manually (no
+ * SMTP / email deliverability dependency). The link points straight at our
+ * /auth/confirm route with a one-time token_hash, so clicking it establishes a
+ * session and drops the client on /set-password.
+ *
+ * Service-role only — callers MUST authorize first (admin, or a client
+ * inviting into their own org).
  */
 export async function inviteUserToOrg(params: {
   email: string;
@@ -27,23 +34,25 @@ export async function inviteUserToOrg(params: {
 
   const admin = createAdminClient();
 
-  const { data: invited, error: inviteErr } =
-    await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${siteUrl()}/auth/confirm?next=/set-password`,
-      data: { full_name: fullName },
-    });
+  // generateLink creates the user and returns a one-time token WITHOUT sending
+  // an email — we hand the link to the admin to send themselves.
+  const { data, error: linkErr } = await admin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { data: { full_name: fullName } },
+  });
 
-  if (inviteErr || !invited?.user) {
-    const msg = inviteErr?.message ?? "";
+  if (linkErr || !data?.user || !data.properties?.hashed_token) {
+    const msg = linkErr?.message ?? "";
     if (/already|registered|exists/i.test(msg)) {
       return { ok: false, error: "That email already has an account." };
     }
-    return { ok: false, error: "Couldn't send the invite. Check the email." };
+    return { ok: false, error: "Couldn't create the invite. Check the email." };
   }
 
   const { error: profileErr } = await admin.from("profiles").upsert(
     {
-      id: invited.user.id,
+      id: data.user.id,
       org_id: params.orgId,
       email,
       full_name: fullName || null,
@@ -56,7 +65,9 @@ export async function inviteUserToOrg(params: {
     return { ok: false, error: "Account made, but profile setup failed." };
   }
 
-  return { ok: true };
+  const token = data.properties.hashed_token;
+  const link = `${siteUrl()}/auth/confirm?token_hash=${token}&type=invite&next=/set-password`;
+  return { ok: true, link };
 }
 
 /** Create an org with a unique slug. Service-role only; authorize first. */

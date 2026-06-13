@@ -8,6 +8,8 @@ export interface InviteFormState {
   ok?: boolean;
   error?: string;
   message?: string;
+  /** Invite link for the admin to copy and send to the client. */
+  link?: string;
 }
 
 /** Admin: create a new client organization and invite its first user. */
@@ -36,7 +38,11 @@ export async function createOrgAndInvite(
   }
 
   revalidatePath("/admin/clients");
-  return { ok: true, message: `Invited ${email} to ${orgName}.` };
+  return {
+    ok: true,
+    message: `${orgName} created. Send ${email} this link to set their password:`,
+    link: invite.link,
+  };
 }
 
 /** Admin: invite an additional user into an existing org. */
@@ -55,5 +61,9 @@ export async function inviteToExistingOrg(
   if (!invite.ok) return { error: invite.error };
 
   revalidatePath(`/admin/clients/${orgId}`);
-  return { ok: true, message: `Invited ${email}.` };
+  return {
+    ok: true,
+    message: `Send ${email} this link to set their password:`,
+    link: invite.link,
+  };
 }

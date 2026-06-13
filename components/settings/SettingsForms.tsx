@@ -9,6 +9,7 @@ import {
 } from "@/app/(client)/settings/actions";
 import { Button } from "@/components/ui/Button";
 import { FormRow, Input } from "@/components/ui/Field";
+import { CopyLink } from "@/components/ui/CopyLink";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -52,7 +53,12 @@ export function TeammateForm() {
         <Submit label="Invite →" />
       </div>
       {state.error ? <p className="text-xs text-danger">{state.error}</p> : null}
-      {state.ok ? <p className="text-xs text-resolved">{state.message}</p> : null}
+      {state.ok ? (
+        <div className="space-y-2 rounded-md border border-resolved/30 bg-resolved/5 p-3">
+          <p className="text-xs text-resolved">{state.message}</p>
+          {state.link ? <CopyLink link={state.link} /> : null}
+        </div>
+      ) : null}
     </form>
   );
 }
