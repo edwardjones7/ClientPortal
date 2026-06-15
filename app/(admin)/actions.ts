@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrganization, inviteUserToOrg } from "@/lib/invites";
 
 export interface InviteFormState {
@@ -66,4 +68,47 @@ export async function inviteToExistingOrg(
     message: `Send ${email} this link to set their password:`,
     link: invite.link,
   };
+}
+
+/**
+ * Admin: generate a FRESH invite/login link for a specific member (e.g. when
+ * the first link expired). Returns the new link to copy and resend.
+ */
+export async function resendClientInvite(
+  orgId: string,
+  email: string,
+  fullName: string,
+): Promise<InviteFormState> {
+  await requireAdmin();
+  const invite = await inviteUserToOrg({ email, fullName, orgId });
+  if (!invite.ok) return { error: invite.error };
+  return { ok: true, message: "Fresh link — send it to them:", link: invite.link };
+}
+
+/**
+ * Admin: permanently remove a client. Deletes every member's auth account
+ * (which cascades their profiles) and the organization (which cascades its
+ * tickets, comments, attachments, and chat). Not reversible.
+ */
+export async function removeClient(
+  orgId: string,
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  // Delete each member's auth user — cascades the profile row.
+  const { data: members } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("org_id", orgId);
+  for (const m of members ?? []) {
+    await admin.auth.admin.deleteUser(m.id);
+  }
+
+  // Delete the org — cascades tickets, comments, attachments, chat.
+  const { error } = await admin.from("organizations").delete().eq("id", orgId);
+  if (error) return { error: "Couldn't remove the client. Try again." };
+
+  revalidatePath("/admin/clients");
+  redirect("/admin/clients");
 }

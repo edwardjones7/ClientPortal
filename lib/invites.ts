@@ -34,19 +34,27 @@ export async function inviteUserToOrg(params: {
 
   const admin = createAdminClient();
 
-  // generateLink creates the user and returns a one-time token WITHOUT sending
-  // an email — we hand the link to the admin to send themselves.
-  const { data, error: linkErr } = await admin.auth.admin.generateLink({
+  // New user → an "invite" link (creates the account). Existing user (e.g. a
+  // resend after the first link expired) → a fresh "magiclink", which logs them
+  // in regardless of confirmation state and drops them on /set-password. Both
+  // are one-time links generated WITHOUT sending an email — we hand them back
+  // for the admin to send themselves.
+  let linkType: "invite" | "magiclink" = "invite";
+  let { data, error: linkErr } = await admin.auth.admin.generateLink({
     type: "invite",
     email,
     options: { data: { full_name: fullName } },
   });
 
+  if (linkErr && /already|registered|exists/i.test(linkErr.message ?? "")) {
+    linkType = "magiclink";
+    ({ data, error: linkErr } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+    }));
+  }
+
   if (linkErr || !data?.user || !data.properties?.hashed_token) {
-    const msg = linkErr?.message ?? "";
-    if (/already|registered|exists/i.test(msg)) {
-      return { ok: false, error: "That email already has an account." };
-    }
     return { ok: false, error: "Couldn't create the invite. Check the email." };
   }
 
@@ -66,7 +74,7 @@ export async function inviteUserToOrg(params: {
   }
 
   const token = data.properties.hashed_token;
-  const link = `${siteUrl()}/auth/confirm?token_hash=${token}&type=invite&next=/set-password`;
+  const link = `${siteUrl()}/auth/confirm?token_hash=${token}&type=${linkType}&next=/set-password`;
   return { ok: true, link };
 }
 

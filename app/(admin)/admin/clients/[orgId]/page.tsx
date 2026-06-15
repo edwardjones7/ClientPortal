@@ -7,7 +7,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StatusChip } from "@/components/ui/StatusChip";
 import { ButtonLink } from "@/components/ui/Button";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
+import { RemoveClientButton } from "@/components/admin/RemoveClientButton";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/lib/utils";
 import type { Profile, Ticket } from "@/lib/types";
 
@@ -43,6 +46,13 @@ export default async function ClientDetailPage({
       .returns<Ticket[]>(),
   ]);
 
+  // Which members have activated (confirmed their email / signed in)?
+  const confirmed = new Set<string>();
+  const { data: authList } = await createAdminClient().auth.admin.listUsers();
+  for (const u of authList?.users ?? []) {
+    if (u.email_confirmed_at || u.last_sign_in_at) confirmed.add(u.id);
+  }
+
   return (
     <div className="max-w-3xl">
       <PageHeading
@@ -50,29 +60,50 @@ export default async function ClientDetailPage({
         title={org.name}
         description={`Client since ${formatDateTime(org.created_at)}`}
         action={
-          <ButtonLink href="/admin/chat" variant="secondary">
-            Open chat →
-          </ButtonLink>
+          <div className="flex items-start gap-2">
+            <ButtonLink href="/admin/chat" variant="secondary" size="sm">
+              Open chat →
+            </ButtonLink>
+            <RemoveClientButton orgId={orgId} name={org.name} />
+          </div>
         }
       />
 
       <section className="mb-10">
         <p className="section-no mb-3">02 / Team</p>
         <Panel className="divide-y divide-border">
-          {(members ?? []).map((m) => (
-            <div key={m.id} className="flex items-center gap-3 px-5 py-3">
-              <Avatar name={m.full_name} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-fg">
-                  {m.full_name ?? "—"}
-                  {m.role === "admin" ? (
-                    <span className="ml-2 text-xs text-accent">Elenos</span>
-                  ) : null}
-                </p>
-                <p className="truncate text-xs text-faint">{m.email}</p>
+          {(members ?? []).map((m) => {
+            const isAdmin = m.role === "admin";
+            const active = confirmed.has(m.id);
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-5 py-3">
+                <Avatar name={m.full_name} accent={isAdmin} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-fg">
+                    {m.full_name ?? "—"}
+                    {isAdmin ? (
+                      <span className="ml-2 text-xs text-accent">Elenos</span>
+                    ) : null}
+                  </p>
+                  <p className="truncate text-xs text-faint">{m.email}</p>
+                </div>
+                {!isAdmin ? (
+                  active ? (
+                    <span className="shrink-0 text-xs text-resolved">Active</span>
+                  ) : (
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-xs text-waiting">Pending</span>
+                      <ResendInviteButton
+                        orgId={orgId}
+                        email={m.email}
+                        fullName={m.full_name ?? ""}
+                      />
+                    </div>
+                  )
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </Panel>
         <div className="mt-4">
           <p className="mb-2 text-xs text-muted">Invite a teammate</p>
