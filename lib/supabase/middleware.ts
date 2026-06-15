@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
  *   - Authenticated: everything under (client) — /, /tickets, /chat, /settings
  *   - Admin only:    everything under /admin
  */
-const PUBLIC_PATHS = ["/login", "/set-password", "/auth"];
+const PUBLIC_PATHS = ["/login", "/set-password", "/auth", "/api/notify"];
 
 function isPublic(pathname: string) {
   return PUBLIC_PATHS.some(

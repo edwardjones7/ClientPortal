@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { sendDiscord } from "@/lib/notify";
 
 export interface AuthFormState {
   error?: string;
@@ -66,6 +67,25 @@ export async function setPassword(
   if (fullName) {
     await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
   }
+
+  // Notify Elenos that a client just activated their account.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("org_id")
+    .eq("id", user.id)
+    .single();
+  let orgName = "their team";
+  if (profile?.org_id) {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("name")
+      .eq("id", profile.org_id)
+      .single();
+    if (org?.name) orgName = org.name;
+  }
+  await sendDiscord(
+    `✅ **${fullName || user.email}** activated their account — ${orgName}`,
+  );
 
   redirect("/");
 }
