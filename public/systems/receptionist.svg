@@ -1,0 +1,22 @@
+<svg width="320" height="160" viewBox="0 0 320 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- chat bubble backdrop -->
+  <path d="M104 36h112a16 16 0 0 1 16 16v40a16 16 0 0 1-16 16h-44l-22 18v-18h-46a16 16 0 0 1-16-16V52a16 16 0 0 1 16-16z" fill="#16161a" stroke="#232328" stroke-width="1.5"/>
+
+  <!-- headset band -->
+  <path d="M132 96V80a28 28 0 0 1 56 0v16" stroke="#a200ff" stroke-width="6" stroke-linecap="round"/>
+  <!-- ear cups -->
+  <rect x="124" y="88" width="18" height="30" rx="8" fill="#a200ff"/>
+  <rect x="178" y="88" width="18" height="30" rx="8" fill="#a200ff"/>
+  <!-- mic boom + tip -->
+  <path d="M187 116c4 16 -8 22 -22 22" stroke="#a200ff" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="161" cy="138" r="5" fill="#f3e3ff"/>
+
+  <!-- soundwave (incoming voice) -->
+  <rect x="60" y="74" width="5" height="12" rx="2.5" fill="#6b1aa8"/>
+  <rect x="72" y="66" width="5" height="28" rx="2.5" fill="#a200ff"/>
+  <rect x="84" y="58" width="5" height="44" rx="2.5" fill="#6b1aa8"/>
+  <!-- soundwave (right) -->
+  <rect x="231" y="58" width="5" height="44" rx="2.5" fill="#6b1aa8"/>
+  <rect x="243" y="66" width="5" height="28" rx="2.5" fill="#a200ff"/>
+  <rect x="255" y="74" width="5" height="12" rx="2.5" fill="#6b1aa8"/>
+</svg>

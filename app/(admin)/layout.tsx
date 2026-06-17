@@ -4,6 +4,7 @@ import type { NavItem } from "@/components/shell/NavLinks";
 
 const NAV: NavItem[] = [
   { href: "/admin/clients", label: "Clients" },
+  { href: "/admin/systems", label: "Systems" },
   { href: "/admin/tickets", label: "Tickets" },
   { href: "/admin/chat", label: "Chat" },
   { href: "/admin/invites", label: "Invite" },

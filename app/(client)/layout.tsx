@@ -5,6 +5,7 @@ import type { NavItem } from "@/components/shell/NavLinks";
 
 const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", exact: true },
+  { href: "/systems", label: "Systems" },
   { href: "/tickets", label: "Tickets" },
   { href: "/chat", label: "Chat" },
   { href: "/settings", label: "Settings" },
