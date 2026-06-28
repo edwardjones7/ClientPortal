@@ -14,8 +14,8 @@ export default async function AdminSystemsPage() {
     <div>
       <PageHeading
         no="01"
-        title="Systems"
-        description="The systems Elenos offers — exactly as clients see them in their portal."
+        title="The Book of Systems"
+        description="The full catalog of systems Elenos offers — exactly as clients browse it in their portal."
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -26,8 +26,8 @@ export default async function AdminSystemsPage() {
 
       <Panel className="mt-6 px-5 py-4">
         <p className="text-sm text-muted">
-          More systems are on the way — we&apos;ll add them here as they go
-          live.
+          The catalog is shared across every client. Edit the list in{" "}
+          <code className="text-fg">lib/systems.ts</code>.
         </p>
       </Panel>
     </div>

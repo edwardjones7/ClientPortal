@@ -77,6 +77,51 @@ export interface ChatMessage {
   created_at: string;
 }
 
+/* ---- Courses / Academy ---- */
+
+export type VideoProvider = "youtube" | "vimeo";
+
+export interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseLesson {
+  id: string;
+  course_id: string;
+  title: string;
+  provider: VideoProvider;
+  video_id: string;
+  position: number;
+  created_at: string;
+}
+
+export interface CourseAssignment {
+  id: string;
+  course_id: string;
+  org_id: string;
+  assigned_by: string | null;
+  created_at: string;
+}
+
+export interface LessonProgress {
+  id: string;
+  profile_id: string;
+  lesson_id: string;
+  org_id: string;
+  seconds_watched: number;
+  last_position: number;
+  duration_seconds: number | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /* ---- Display metadata (labels + brand colors) ---- */
 
 export const TICKET_STATUS: Record<

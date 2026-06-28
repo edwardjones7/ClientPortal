@@ -13,7 +13,10 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Resources",
-    items: [{ href: "/admin/systems", label: "Systems" }],
+    items: [
+      { href: "/admin/systems", label: "Systems" },
+      { href: "/admin/courses", label: "Academy" },
+    ],
   },
   { footer: true, items: [{ href: "/admin/invites", label: "Invite" }] },
 ];

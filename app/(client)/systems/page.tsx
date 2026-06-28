@@ -3,26 +3,19 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { SystemCard } from "@/components/systems/SystemCard";
 import { requireClient } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { SYSTEMS } from "@/lib/systems";
 
 export const metadata: Metadata = { title: "Systems" };
 
 export default async function SystemsPage() {
-  const user = await requireClient();
-  const supabase = await createClient();
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("name")
-    .eq("id", user.orgId)
-    .single();
+  await requireClient();
 
   return (
     <div>
       <PageHeading
         no="01"
-        title="Systems"
-        description={`The systems Elenos runs for ${org?.name ?? "your team"}. Live now, with more on the way.`}
+        title="The Book of Systems"
+        description="The catalog of systems Elenos designs, builds, and runs for businesses. Browse what's possible."
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -33,8 +26,8 @@ export default async function SystemsPage() {
 
       <Panel className="mt-6 px-5 py-4">
         <p className="text-sm text-muted">
-          More systems are on the way — we&apos;ll add them here as they go
-          live.
+          See something you&apos;d want for your business? Open a ticket and
+          we&apos;ll scope it with you.
         </p>
       </Panel>
     </div>
