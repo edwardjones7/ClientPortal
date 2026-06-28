@@ -5,18 +5,27 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { Avatar } from "@/components/ui/Avatar";
 import { StatusChip } from "@/components/ui/StatusChip";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { RemoveClientButton } from "@/components/admin/RemoveClientButton";
 import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
-import { Button } from "@/components/ui/Button";
 import { viewAsClient } from "@/app/(admin)/actions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/lib/utils";
-import type { Profile, Ticket } from "@/lib/types";
+import type { Profile, Ticket, TicketStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Client" };
+
+// Order tickets by status: in-progress at top, open/active in the middle,
+// closed at the bottom. Lower rank sorts first.
+const STATUS_RANK: Record<TicketStatus, number> = {
+  in_progress: 0,
+  waiting_on_client: 1,
+  open: 2,
+  resolved: 3,
+  closed: 4,
+};
 
 export default async function ClientDetailPage({
   params,
@@ -47,6 +56,13 @@ export default async function ClientDetailPage({
       .order("updated_at", { ascending: false })
       .returns<Ticket[]>(),
   ]);
+
+  // Already ordered by recency from the query; re-order by status so
+  // in-progress floats to the top and closed sinks to the bottom.
+  // Array.prototype.sort is stable, so recency is preserved within a status.
+  const sortedTickets = [...(tickets ?? [])].sort(
+    (a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status],
+  );
 
   // Which members have activated (confirmed their email / signed in)?
   const confirmed = new Set<string>();
@@ -120,13 +136,13 @@ export default async function ClientDetailPage({
 
       <section>
         <p className="section-no mb-3">03 / Tickets</p>
-        {!tickets || tickets.length === 0 ? (
+        {sortedTickets.length === 0 ? (
           <Panel className="px-5 py-8 text-center text-sm text-muted">
             No tickets from this client yet.
           </Panel>
         ) : (
           <Panel className="divide-y divide-border">
-            {tickets.map((t) => (
+            {sortedTickets.map((t) => (
               <Link
                 key={t.id}
                 href={`/admin/tickets/${t.id}`}

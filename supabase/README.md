@@ -8,9 +8,11 @@ hard isolation inside one database. Remove the whole portal anytime with
 
 ## 1. Apply the schema
 
-**Option A — SQL editor (fastest):** paste `migrations/0001_init_portal.sql`
-into the website project's Supabase SQL editor and run it. It creates the
-`portal` schema and everything in it; nothing in `public` is modified.
+**Option A — SQL editor (fastest):** paste each migration in order —
+`migrations/0001_init_portal.sql`, then `0002_notifications.sql`, then
+`0003_invites.sql` — into the website project's Supabase SQL editor and run
+them. They create the `portal` schema and everything in it; nothing in `public`
+is modified. (`0003` adds the `portal.invites` table backing copy-link invites.)
 
 **Option B — Supabase CLI:**
 

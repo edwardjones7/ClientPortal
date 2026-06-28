@@ -15,7 +15,13 @@ function SubmitButton() {
   );
 }
 
-export function SetPasswordForm({ defaultName }: { defaultName: string }) {
+export function SetPasswordForm({
+  token,
+  defaultName,
+}: {
+  token: string;
+  defaultName: string;
+}) {
   const [state, formAction] = useActionState<AuthFormState, FormData>(
     setPassword,
     {},
@@ -23,6 +29,7 @@ export function SetPasswordForm({ defaultName }: { defaultName: string }) {
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="token" value={token} />
       <FormRow label="Your name" htmlFor="full_name">
         <Input
           id="full_name"

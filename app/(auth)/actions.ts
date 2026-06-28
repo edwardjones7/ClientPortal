@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { validateInviteToken, consumeInvite } from "@/lib/invites";
 import { sendDiscord } from "@/lib/notify";
 
 export interface AuthFormState {
@@ -32,13 +34,16 @@ export async function login(
 }
 
 /**
- * Set a password (and name) for an invited user. Requires an active session,
- * which the invite link establishes via /auth/confirm.
+ * Set a password (and name) for an invited user. Authorized by possession of a
+ * valid invite token (see lib/invites). The token is consumed here — not when
+ * the link is opened — so the client can reach this form any number of times
+ * until they actually finish, or until the link lapses.
  */
 export async function setPassword(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
+  const token = String(formData.get("token") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
@@ -50,41 +55,53 @@ export async function setPassword(
     return { error: "Those passwords don't match." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  const invite = await validateInviteToken(token);
+  if (!invite) {
     return { error: "Your invite link expired. Ask Elenos to resend it." };
   }
 
-  const { error } = await supabase.auth.updateUser({ password });
+  // Set the password (and confirm the email) via the service-role client — the
+  // client isn't signed in yet; the invite token is what authorizes this.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(invite.userId, {
+    password,
+    email_confirm: true,
+  });
   if (error) {
     return { error: "Couldn't set your password. Try the link again." };
   }
 
   if (fullName) {
-    await supabase.from("profiles").update({ full_name: fullName }).eq("id", user.id);
+    await admin
+      .from("profiles")
+      .update({ full_name: fullName })
+      .eq("id", invite.userId);
+  }
+
+  // Burn the invite so the link can't be replayed, then sign the client in to
+  // establish their session before dropping them in the portal.
+  await consumeInvite(invite.id);
+
+  const supabase = await createClient();
+  const { error: signInErr } = await supabase.auth.signInWithPassword({
+    email: invite.email,
+    password,
+  });
+  if (signInErr) {
+    // Password is set — just send them to log in manually.
+    redirect("/login?next=/");
   }
 
   // Notify Elenos that a client just activated their account.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("org_id")
-    .eq("id", user.id)
-    .single();
   let orgName = "their team";
-  if (profile?.org_id) {
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("name")
-      .eq("id", profile.org_id)
-      .single();
-    if (org?.name) orgName = org.name;
-  }
+  const { data: org } = await admin
+    .from("organizations")
+    .select("name")
+    .eq("id", invite.orgId)
+    .maybeSingle();
+  if (org?.name) orgName = org.name;
   await sendDiscord(
-    `✅ **${fullName || user.email}** activated their account — ${orgName}`,
+    `✅ **${fullName || invite.email}** activated their account — ${orgName}`,
   );
 
   redirect("/");

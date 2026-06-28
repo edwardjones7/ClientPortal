@@ -1,23 +1,28 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { validateInviteToken } from "@/lib/invites";
 import { SetPasswordForm } from "@/components/auth/SetPasswordForm";
 
 export const metadata: Metadata = { title: "Set your password" };
 
-export default async function SetPasswordPage() {
-  // The invite link must have established a session via /auth/confirm.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?error=link");
+export default async function SetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  // The invite link carries our own token; opening this page doesn't use it up,
+  // so the client can come back to it any number of times until it lapses.
+  const { token } = await searchParams;
+  const invite = token ? await validateInviteToken(token) : null;
+  if (!invite) redirect("/login?error=link");
 
-  const { data: profile } = await supabase
+  const admin = createAdminClient();
+  const { data: profile } = await admin
     .from("profiles")
     .select("full_name")
-    .eq("id", user.id)
-    .single();
+    .eq("id", invite.userId)
+    .maybeSingle();
 
   return (
     <div>
@@ -27,7 +32,7 @@ export default async function SetPasswordPage() {
       <p className="mb-6 text-sm text-muted">
         One step. Then you&apos;re in.
       </p>
-      <SetPasswordForm defaultName={profile?.full_name ?? ""} />
+      <SetPasswordForm token={token!} defaultName={profile?.full_name ?? ""} />
     </div>
   );
 }
