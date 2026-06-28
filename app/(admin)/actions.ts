@@ -1,10 +1,35 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, VIEW_AS_COOKIE } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrganization, inviteUserToOrg } from "@/lib/invites";
+
+/**
+ * Admin: preview the portal as a given client org. Sets the view-as cookie and
+ * drops into the (client) dashboard scoped to that org. RLS still lets the
+ * admin read the org (is_admin), so the client pages render its real data.
+ */
+export async function viewAsClient(orgId: string) {
+  await requireAdmin();
+  const store = await cookies();
+  store.set(VIEW_AS_COOKIE, orgId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  redirect("/");
+}
+
+/** Admin: stop previewing as a client and return to the admin area. */
+export async function exitClientView() {
+  await requireAdmin();
+  const store = await cookies();
+  store.delete(VIEW_AS_COOKIE);
+  redirect("/admin/clients");
+}
 
 export interface InviteFormState {
   ok?: boolean;

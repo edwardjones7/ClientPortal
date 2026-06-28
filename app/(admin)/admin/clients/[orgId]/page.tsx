@@ -9,6 +9,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { RemoveClientButton } from "@/components/admin/RemoveClientButton";
 import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
+import { Button } from "@/components/ui/Button";
+import { viewAsClient } from "@/app/(admin)/actions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTime } from "@/lib/utils";
@@ -61,6 +63,11 @@ export default async function ClientDetailPage({
         description={`Client since ${formatDateTime(org.created_at)}`}
         action={
           <div className="flex items-start gap-2">
+            <form action={viewAsClient.bind(null, orgId)}>
+              <Button type="submit" variant="secondary" size="sm">
+                View as client →
+              </Button>
+            </form>
             <ButtonLink href="/admin/chat" variant="secondary" size="sm">
               Open chat →
             </ButtonLink>

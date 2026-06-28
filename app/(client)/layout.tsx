@@ -1,6 +1,7 @@
 import { requireClient } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
+import { ViewAsBanner } from "@/components/admin/ViewAsBanner";
 import type { NavItem } from "@/components/shell/NavLinks";
 
 const NAV: NavItem[] = [
@@ -24,6 +25,9 @@ export default async function ClientLayout({
     .eq("id", user.orgId)
     .single();
 
+  // Admins only reach (client) pages when previewing via "view as client".
+  const previewing = user.profile.role === "admin";
+
   return (
     <AppShell
       nav={NAV}
@@ -31,6 +35,7 @@ export default async function ClientLayout({
       userName={user.profile.full_name}
       userEmail={user.email}
     >
+      {previewing ? <ViewAsBanner orgName={org?.name ?? "this client"} /> : null}
       {children}
     </AppShell>
   );
