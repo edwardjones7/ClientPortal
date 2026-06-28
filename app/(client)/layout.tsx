@@ -2,14 +2,25 @@ import { requireClient } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
 import { ViewAsBanner } from "@/components/admin/ViewAsBanner";
-import type { NavItem } from "@/components/shell/NavLinks";
+import type { NavGroup } from "@/components/shell/NavLinks";
 
-const NAV: NavItem[] = [
-  { href: "/", label: "Dashboard", exact: true },
-  { href: "/systems", label: "Systems" },
-  { href: "/tickets", label: "Tickets" },
-  { href: "/chat", label: "Chat" },
-  { href: "/settings", label: "Settings" },
+const NAV: NavGroup[] = [
+  { items: [{ href: "/", label: "Dashboard", exact: true }] },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/tickets", label: "Tickets" },
+      { href: "/chat", label: "Chat" },
+    ],
+  },
+  {
+    label: "Resources",
+    items: [
+      { href: "/systems", label: "Systems" },
+      { href: "/courses", label: "Courses" },
+    ],
+  },
+  { footer: true, items: [{ href: "/settings", label: "Settings" }] },
 ];
 
 export default async function ClientLayout({

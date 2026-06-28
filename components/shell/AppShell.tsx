@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Avatar } from "@/components/ui/Avatar";
 import { signOut } from "@/app/(auth)/actions";
-import { NavLinks, type NavItem } from "./NavLinks";
+import { NavLinks, type NavInput } from "./NavLinks";
 
 /**
  * Shared layout for the authenticated app. Left sidebar on md+, top bar on
@@ -16,7 +16,7 @@ export function AppShell({
   accentAvatar = false,
   children,
 }: {
-  nav: NavItem[];
+  nav: NavInput;
   eyebrow: string;
   userName: string | null;
   userEmail: string;

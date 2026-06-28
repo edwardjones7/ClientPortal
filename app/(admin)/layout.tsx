@@ -1,13 +1,21 @@
 import { requireAdmin } from "@/lib/auth";
 import { AppShell } from "@/components/shell/AppShell";
-import type { NavItem } from "@/components/shell/NavLinks";
+import type { NavGroup } from "@/components/shell/NavLinks";
 
-const NAV: NavItem[] = [
-  { href: "/admin/clients", label: "Clients" },
-  { href: "/admin/systems", label: "Systems" },
-  { href: "/admin/tickets", label: "Tickets" },
-  { href: "/admin/chat", label: "Chat" },
-  { href: "/admin/invites", label: "Invite" },
+const NAV: NavGroup[] = [
+  { items: [{ href: "/admin/clients", label: "Clients" }] },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/admin/tickets", label: "Tickets" },
+      { href: "/admin/chat", label: "Chat" },
+    ],
+  },
+  {
+    label: "Resources",
+    items: [{ href: "/admin/systems", label: "Systems" }],
+  },
+  { footer: true, items: [{ href: "/admin/invites", label: "Invite" }] },
 ];
 
 export default async function AdminLayout({
