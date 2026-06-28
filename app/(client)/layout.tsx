@@ -17,7 +17,7 @@ const NAV: NavGroup[] = [
     label: "Resources",
     items: [
       { href: "/systems", label: "Systems" },
-      { href: "/courses", label: "Courses" },
+      { href: "/academy", label: "Academy" },
     ],
   },
   { footer: true, items: [{ href: "/settings", label: "Settings" }] },
