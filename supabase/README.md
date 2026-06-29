@@ -10,11 +10,16 @@ hard isolation inside one database. Remove the whole portal anytime with
 
 **Option A — SQL editor (fastest):** paste each migration in order —
 `migrations/0001_init_portal.sql`, then `0002_notifications.sql`,
-`0003_invites.sql`, then `0004_courses.sql` — into the website project's
-Supabase SQL editor and run them. They create the `portal` schema and everything
-in it; nothing in `public` is modified. (`0003` adds the `portal.invites` table
-backing copy-link invites; `0004` adds the courses/academy tables and the public
-`course-thumbnails` bucket.)
+`0003_invites.sql`, `0004_courses.sql`, then `0005_client_notifications.sql` —
+into the website project's Supabase SQL editor and run them. They create the
+`portal` schema and everything in it; nothing in `public` is modified. (`0003`
+adds the `portal.invites` table backing copy-link invites; `0004` adds the
+courses/academy tables and the public `course-thumbnails` bucket; `0005` adds an
+UPDATE trigger that emails the client when their ticket's status changes.)
+
+> **Note:** `0002` and `0005` both contain a `<NOTIFY_WEBHOOK_SECRET>`
+> placeholder — replace it with your real `NOTIFY_WEBHOOK_SECRET` value (the same
+> one set in Vercel) before running, and don't commit the real secret.
 
 **Option B — Supabase CLI:**
 

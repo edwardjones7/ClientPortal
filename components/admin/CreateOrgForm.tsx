@@ -46,7 +46,11 @@ export function CreateOrgForm() {
         <div className="space-y-2 rounded-md border border-resolved/30 bg-resolved/5 p-3">
           <p className="text-xs text-resolved">{state.message}</p>
           {state.link ? <CopyLink link={state.link} /> : null}
-          <p className="meta">Link is one-time and expires in 24 hours.</p>
+          <p className="meta">
+            Copy this link and send it to the client. It works for 12 hours and
+            can be opened any number of times — it&apos;s used up only once they
+            set their password.
+          </p>
         </div>
       ) : null}
       <Submit />

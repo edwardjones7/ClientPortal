@@ -59,16 +59,15 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
 
 - **Site URL**: your `NEXT_PUBLIC_SITE_URL`
 - **Redirect URLs**: add `${SITE_URL}/auth/confirm` (and the localhost variant)
+  — used only by the recovery / magic-link flow, not invites.
 
-Then **Authentication → Email Templates → Invite user**, point the link at the
-app so the SSR callback can establish the session:
-
-```
-{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/set-password
-```
-
-For real client deliverability, configure a custom **SMTP** sender (Auth →
-Settings). The default Supabase mailer is rate-limited and fine only for testing.
+> **Invites do not use Supabase email.** The app mints its own token and returns
+> a `/set-password?token=…` link for the admin to copy and send manually (see
+> `lib/invites.ts`). This link works for **12 hours**, survives scanners/reloads
+> (opening it never uses it up), and is consumed only when the client actually
+> sets a password. You do **not** need to configure the "Invite user" email
+> template or SMTP for invites to work. (If you use the recovery/magic-link flow,
+> that path still goes through `/auth/confirm` and Supabase email.)
 
 ### 4. Run
 
@@ -79,9 +78,9 @@ npm run dev     # http://localhost:3000
 ## How it flows
 
 1. You (admin) go to `/admin/invites`, create a client org, and invite their
-   first user.
-2. The client gets an email, clicks it, lands on `/set-password`, sets a
-   password, and enters the portal.
+   first user. You get a copyable invite link (no email is sent).
+2. You send the client that link; they open it, land on `/set-password`, set a
+   password, and enter the portal. The link is good for 12 hours.
 3. They submit tickets and chat. You work the queue and reply from `/admin`.
 4. Owners invite their own teammates from `/settings`.
 
