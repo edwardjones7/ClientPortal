@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, requireAdmin } from "@/lib/auth";
 import type {
@@ -30,11 +29,23 @@ export interface TicketFormState {
   error?: string;
 }
 
-/** Client creates a ticket, optionally with file attachments. */
+export interface CreateTicketResult {
+  error?: string;
+  /** On success, the new ticket id + the caller's org id, so the browser can
+   * upload attachments directly to storage at {orgId}/{ticketId}/{name}. */
+  ticketId?: string;
+  orgId?: string;
+}
+
+/**
+ * Client creates a ticket (text only). Attachments are NOT sent here — the
+ * browser uploads files straight to Supabase Storage after this returns, so we
+ * never push image bytes through a Server Action (whose request body is capped
+ * ~1MB by Next.js / ~4.5MB by Vercel — phone photos blow past both).
+ */
 export async function createTicket(
-  _prev: TicketFormState,
   formData: FormData,
-): Promise<TicketFormState> {
+): Promise<CreateTicketResult> {
   const user = await getSessionUser();
   if (!user || !user.profile.org_id) return { error: "Sign in to submit work." };
   const orgId = user.profile.org_id;
@@ -69,26 +80,9 @@ export async function createTicket(
 
   if (error || !ticket) return { error: "Couldn't create the ticket. Try again." };
 
-  // Upload any attachments under {org_id}/{ticket_id}/{filename}.
-  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  for (const file of files) {
-    const path = `${orgId}/${ticket.id}/${Date.now()}-${file.name}`;
-    const { error: upErr } = await supabase.storage
-      .from("ticket-attachments")
-      .upload(path, file, { upsert: false });
-    if (!upErr) {
-      await supabase.from("ticket_attachments").insert({
-        ticket_id: ticket.id,
-        storage_path: path,
-        file_name: file.name,
-        uploaded_by: user.id,
-      });
-    }
-  }
-
   revalidatePath("/tickets");
   revalidatePath("/admin/tickets");
-  redirect(`/tickets/${ticket.id}`);
+  return { ticketId: ticket.id, orgId };
 }
 
 /** Add a comment to a ticket thread (client or admin). */
