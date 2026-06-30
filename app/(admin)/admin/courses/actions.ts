@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { parseVideoUrl } from "@/lib/courses";
+import { sendEmail, portalUrl } from "@/lib/notify";
 
 export interface CourseFormState {
   ok?: boolean;
@@ -179,6 +180,16 @@ export async function setCourseAssignment(formData: FormData): Promise<void> {
 
   const supabase = await createClient();
 
+  // Was this exact target already assigned? If so, re-toggling shouldn't
+  // re-email people — only a genuinely new assignment notifies.
+  let existingQ = supabase
+    .from("course_assignments")
+    .select("id")
+    .eq("course_id", courseId);
+  existingQ = orgId ? existingQ.eq("org_id", orgId) : existingQ.eq("profile_id", profileId);
+  const { data: existing } = await existingQ.maybeSingle();
+  const isNewAssignment = assigned && !existing;
+
   // Clear any existing identical target first (idempotent).
   let del = supabase.from("course_assignments").delete().eq("course_id", courseId);
   del = orgId ? del.eq("org_id", orgId) : del.eq("profile_id", profileId);
@@ -192,6 +203,43 @@ export async function setCourseAssignment(formData: FormData): Promise<void> {
     );
   }
   revalidatePath(`/admin/courses/${courseId}`);
+
+  // Best-effort: email the assignee(s) that new training is available. Never
+  // let a notification failure surface to the admin (sendEmail also swallows).
+  if (isNewAssignment) {
+    const { data: course } = await supabase
+      .from("courses")
+      .select("title")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    let recipients: string[] = [];
+    if (orgId) {
+      const { data: members } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("org_id", orgId);
+      recipients = (members ?? []).map((m) => m.email).filter(Boolean);
+    } else {
+      const { data: person } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", profileId)
+        .maybeSingle();
+      if (person?.email) recipients = [person.email];
+    }
+
+    if (recipients.length > 0) {
+      const title = course?.title ?? "a course";
+      await sendEmail({
+        to: recipients,
+        subject: `New training assigned — “${title}”`,
+        text:
+          `Elenos has assigned you new training: “${title}”.\n\n` +
+          `Watch it in your Academy: ${portalUrl()}/academy`,
+      });
+    }
+  }
 }
 
 /** Admin: record an uploaded course document (file already in `course-files`). */
