@@ -47,7 +47,7 @@ export default async function AdminCourseDetailPage({
     { data: orgs },
     { data: people },
     { data: assignments },
-    { data: resources },
+    { data: rawResources },
   ] = await Promise.all([
     supabase
       .from("course_lessons")
@@ -73,13 +73,36 @@ export default async function AdminCourseDetailPage({
       .returns<Pick<CourseAssignmentRow, "org_id" | "profile_id">[]>(),
     supabase
       .from("course_resources")
-      .select("id, file_name, title, size_bytes")
+      .select("id, file_name, title, size_bytes, thumbnail_path")
       .eq("course_id", courseId)
       .order("position", { ascending: true })
       .returns<
-        Pick<CourseResource, "id" | "file_name" | "title" | "size_bytes">[]
+        Pick<
+          CourseResource,
+          "id" | "file_name" | "title" | "size_bytes" | "thumbnail_path"
+        >[]
       >(),
   ]);
+
+  // Sign thumbnail URLs for the admin file list (private bucket).
+  const resources = await Promise.all(
+    (rawResources ?? []).map(async (r) => {
+      let thumbnail_url: string | null = null;
+      if (r.thumbnail_path) {
+        const { data: signed } = await supabase.storage
+          .from("course-files")
+          .createSignedUrl(r.thumbnail_path, 60 * 60);
+        thumbnail_url = signed?.signedUrl ?? null;
+      }
+      return {
+        id: r.id,
+        file_name: r.file_name,
+        title: r.title,
+        size_bytes: r.size_bytes,
+        thumbnail_url,
+      };
+    }),
+  );
 
   const lessonList = lessons ?? [];
   const lessonIds = lessonList.map((l) => l.id);
@@ -222,7 +245,7 @@ export default async function AdminCourseDetailPage({
       <section className="mb-10">
         <p className="section-no mb-3">04 / Files</p>
         <Panel className="p-5">
-          <CourseDocuments courseId={courseId} resources={resources ?? []} />
+          <CourseDocuments courseId={courseId} resources={resources} />
         </Panel>
       </section>
 

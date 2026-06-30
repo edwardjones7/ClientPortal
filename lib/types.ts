@@ -121,6 +121,8 @@ export interface CourseResource {
   file_name: string;
   mime_type: string | null;
   size_bytes: number | null;
+  /** Optional preview image path in `course-files` (PDF first page / the image). */
+  thumbnail_path: string | null;
   position: number;
   created_by: string | null;
   created_at: string;

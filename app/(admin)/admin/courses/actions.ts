@@ -202,6 +202,7 @@ export async function recordCourseResource(input: {
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
+  thumbnailPath?: string | null;
 }): Promise<{ error?: string }> {
   const user = await requireAdmin();
   if (!input.courseId || !input.storagePath || !input.fileName) {
@@ -225,6 +226,7 @@ export async function recordCourseResource(input: {
     file_name: input.fileName,
     mime_type: input.mimeType,
     size_bytes: input.sizeBytes,
+    thumbnail_path: input.thumbnailPath ?? null,
     position,
     created_by: user.id,
   });
@@ -245,11 +247,16 @@ export async function deleteCourseResource(input: {
   const supabase = await createClient();
   const { data: row } = await supabase
     .from("course_resources")
-    .select("storage_path")
+    .select("storage_path, thumbnail_path")
     .eq("id", input.id)
     .maybeSingle();
-  if (row?.storage_path) {
-    await supabase.storage.from("course-files").remove([row.storage_path]);
+  // Remove the file and its generated thumbnail (skip if the thumbnail IS the
+  // file, as for images, to avoid a redundant delete).
+  const paths = new Set<string>();
+  if (row?.storage_path) paths.add(row.storage_path);
+  if (row?.thumbnail_path) paths.add(row.thumbnail_path);
+  if (paths.size > 0) {
+    await supabase.storage.from("course-files").remove([...paths]);
   }
   await supabase.from("course_resources").delete().eq("id", input.id);
   revalidatePath(`/admin/courses/${input.courseId}`);

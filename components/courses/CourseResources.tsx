@@ -6,6 +6,7 @@ export interface ResourceView {
   file_name: string;
   size_bytes: number | null;
   url: string | null;
+  thumbnailUrl: string | null;
 }
 
 function fileSize(bytes: number | null): string | null {
@@ -28,6 +29,18 @@ export function CourseResources({ resources }: { resources: ResourceView[] }) {
           const label = r.title || r.file_name;
           const inner = (
             <>
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded border border-border bg-surface-2">
+                {r.thumbnailUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.thumbnailUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[10px] text-faint">FILE</span>
+                )}
+              </span>
               <span className="min-w-0 flex-1 truncate text-sm text-fg">
                 {label}
               </span>

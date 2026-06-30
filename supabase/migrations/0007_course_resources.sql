@@ -8,18 +8,24 @@
 
 -- ── Table ────────────────────────────────────────────────────────────────────
 create table if not exists portal.course_resources (
-  id           uuid primary key default gen_random_uuid(),
-  course_id    uuid not null references portal.courses (id) on delete cascade,
-  title        text,
+  id            uuid primary key default gen_random_uuid(),
+  course_id     uuid not null references portal.courses (id) on delete cascade,
+  title         text,
   -- Object path in the private `course-files` bucket: {course_id}/{filename}
-  storage_path text not null,
-  file_name    text not null,
-  mime_type    text,
-  size_bytes   bigint,
-  position     int  not null default 0,
-  created_by   uuid references portal.profiles (id) on delete set null,
-  created_at   timestamptz not null default now()
+  storage_path  text not null,
+  file_name     text not null,
+  mime_type     text,
+  size_bytes    bigint,
+  -- Optional auto-generated preview (e.g. a PDF's first page), in `course-files`
+  -- under {course_id}/_thumbs/…. For images this points at the file itself.
+  thumbnail_path text,
+  position      int  not null default 0,
+  created_by    uuid references portal.profiles (id) on delete set null,
+  created_at    timestamptz not null default now()
 );
+-- Safe if an earlier 0007 (without the column) was already applied.
+alter table portal.course_resources
+  add column if not exists thumbnail_path text;
 create index if not exists course_resources_course_idx
   on portal.course_resources (course_id, position);
 

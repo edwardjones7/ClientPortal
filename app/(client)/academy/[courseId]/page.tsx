@@ -60,13 +60,21 @@ export default async function CoursePage({
   // Downloadable documents attached to this course (private bucket → sign URLs).
   const { data: rawResources } = await supabase
     .from("course_resources")
-    .select("id, title, file_name, storage_path, mime_type, size_bytes")
+    .select(
+      "id, title, file_name, storage_path, mime_type, size_bytes, thumbnail_path",
+    )
     .eq("course_id", courseId)
     .order("position", { ascending: true })
     .returns<
       Pick<
         CourseResource,
-        "id" | "title" | "file_name" | "storage_path" | "mime_type" | "size_bytes"
+        | "id"
+        | "title"
+        | "file_name"
+        | "storage_path"
+        | "mime_type"
+        | "size_bytes"
+        | "thumbnail_path"
       >[]
     >();
 
@@ -75,12 +83,20 @@ export default async function CoursePage({
       const { data: signed } = await supabase.storage
         .from("course-files")
         .createSignedUrl(r.storage_path, 60 * 60);
+      let thumbnailUrl: string | null = null;
+      if (r.thumbnail_path) {
+        const { data: signedThumb } = await supabase.storage
+          .from("course-files")
+          .createSignedUrl(r.thumbnail_path, 60 * 60);
+        thumbnailUrl = signedThumb?.signedUrl ?? null;
+      }
       return {
         id: r.id,
         title: r.title,
         file_name: r.file_name,
         size_bytes: r.size_bytes,
         url: signed?.signedUrl ?? null,
+        thumbnailUrl,
       };
     }),
   );
