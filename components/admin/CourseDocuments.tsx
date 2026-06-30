@@ -8,7 +8,7 @@ import {
   recordCourseResource,
   deleteCourseResource,
 } from "@/app/(admin)/admin/courses/actions";
-import { Button } from "@/components/ui/Button";
+import { cx } from "@/lib/utils";
 
 export interface CourseDoc {
   id: string;
@@ -35,6 +35,7 @@ export function CourseDocuments({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [pending, start] = useTransition();
 
   function onPick(list: FileList | null) {
@@ -104,26 +105,56 @@ export function CourseDocuments({
           })}
         </ul>
       ) : (
-        <p className="text-sm text-muted">No documents yet.</p>
+        <p className="text-sm text-muted">No files yet.</p>
       )}
 
+      {/* No `accept` filter — any file type is allowed (docs, slides, zips…). */}
       <input
         ref={inputRef}
         type="file"
         multiple
-        accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.ppt,.pptx"
         className="hidden"
         onChange={(e) => onPick(e.target.files)}
       />
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        disabled={pending}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!dragging) setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          onPick(e.dataTransfer.files);
+        }}
+        className={cx(
+          "cursor-pointer rounded-md border border-dashed px-4 py-6 text-center transition-colors focus:outline-none focus:border-accent",
+          dragging
+            ? "border-accent bg-accent/5"
+            : "border-border hover:border-border-strong",
+          pending && "pointer-events-none opacity-60",
+        )}
       >
-        {pending ? "Uploading…" : "Upload documents"}
-      </Button>
+        <p className="text-sm text-muted">
+          {pending
+            ? "Uploading…"
+            : dragging
+              ? "Drop to upload"
+              : "Drag & drop files here, or click to browse"}
+        </p>
+        <p className="meta mt-1">
+          Any file type · documents, slideshows, images, more
+        </p>
+      </div>
       {error ? <p className="text-xs text-danger">{error}</p> : null}
     </div>
   );

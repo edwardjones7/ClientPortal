@@ -74,20 +74,34 @@ export async function getViewAsOrgId(): Promise<string | null> {
 
 /**
  * Require an org member (client OR employee). Admins are redirected to the admin
- * area UNLESS they're previewing a specific org via "view as client" — then
- * they're treated as a member of that org. Use this on pages shared by clients
- * and employees (academy, chat, settings, dashboard) that need an org_id.
+ * area UNLESS they're previewing a specific org via "view as client" / "view as
+ * employee" — then they're treated as a member of that org. Use this on pages
+ * shared by clients and employees (academy, chat, settings, dashboard) that need
+ * an org_id.
+ *
+ * `isEmployee` is true for real employees AND for an admin previewing the
+ * internal "Elenos Team" org, so shared pages render the employee-facing UI in
+ * both cases instead of keying off the (always "admin") preview role.
  */
-export async function requireMember(): Promise<SessionUser & { orgId: string }> {
+export async function requireMember(): Promise<
+  SessionUser & { orgId: string; isEmployee: boolean }
+> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.profile.role === "admin") {
     const viewAs = await getViewAsOrgId();
-    if (viewAs) return { ...user, orgId: viewAs };
+    if (viewAs) {
+      const internalOrgId = await getInternalOrgId();
+      return { ...user, orgId: viewAs, isEmployee: viewAs === internalOrgId };
+    }
     redirect("/admin/clients");
   }
   if (!user.profile.org_id) redirect("/login");
-  return { ...user, orgId: user.profile.org_id };
+  return {
+    ...user,
+    orgId: user.profile.org_id,
+    isEmployee: user.profile.role === "employee",
+  };
 }
 
 /**

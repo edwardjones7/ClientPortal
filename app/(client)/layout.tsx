@@ -32,6 +32,10 @@ const EMPLOYEE_NAV: NavGroup[] = [
     items: [{ href: "/academy", label: "Academy" }],
   },
   {
+    label: "Resources",
+    items: [{ href: "/systems", label: "Systems" }],
+  },
+  {
     label: "Workspace",
     items: [{ href: "/chat", label: "Chat" }],
   },
@@ -51,8 +55,8 @@ export default async function MemberLayout({
     .eq("id", user.orgId)
     .single();
 
-  const isEmployee = user.profile.role === "employee";
-  // Admins only reach these pages when previewing via "view as client".
+  const isEmployee = user.isEmployee;
+  // Admins only reach these pages when previewing via "view as client/employee".
   const previewing = user.profile.role === "admin";
 
   return (
@@ -62,7 +66,12 @@ export default async function MemberLayout({
       userName={user.profile.full_name}
       userEmail={user.email}
     >
-      {previewing ? <ViewAsBanner orgName={org?.name ?? "this client"} /> : null}
+      {previewing ? (
+        <ViewAsBanner
+          orgName={org?.name ?? (isEmployee ? "an employee" : "this client")}
+          isEmployee={isEmployee}
+        />
+      ) : null}
       {children}
     </AppShell>
   );

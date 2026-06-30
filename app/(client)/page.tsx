@@ -15,7 +15,7 @@ const ACTIVE = ["open", "in_progress", "waiting_on_client"];
 
 export default async function DashboardPage() {
   const user = await requireMember();
-  if (user.profile.role === "employee") {
+  if (user.isEmployee) {
     return <EmployeeDashboard user={user} />;
   }
   return <ClientDashboard user={user} orgId={user.orgId} />;

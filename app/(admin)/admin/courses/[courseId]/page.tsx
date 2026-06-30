@@ -218,9 +218,9 @@ export default async function AdminCourseDetailPage({
         </Panel>
       </section>
 
-      {/* Documents */}
+      {/* Files (documents, slideshows, anything) */}
       <section className="mb-10">
-        <p className="section-no mb-3">04 / Documents</p>
+        <p className="section-no mb-3">04 / Files</p>
         <Panel className="p-5">
           <CourseDocuments courseId={courseId} resources={resources ?? []} />
         </Panel>

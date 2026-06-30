@@ -31,6 +31,32 @@ export async function exitClientView() {
   redirect("/admin/clients");
 }
 
+/**
+ * Admin: preview the portal as an employee. Points the view-as cookie at the
+ * internal "Elenos Team" org and drops into the (client) shell, which renders
+ * the employee nav + dashboard for that org (see `requireMember().isEmployee`).
+ */
+export async function viewAsEmployee() {
+  await requireAdmin();
+  const orgId = await getInternalOrgId();
+  if (!orgId) redirect("/admin/team");
+  const store = await cookies();
+  store.set(VIEW_AS_COOKIE, orgId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  redirect("/");
+}
+
+/** Admin: stop previewing as an employee and return to the team area. */
+export async function exitEmployeeView() {
+  await requireAdmin();
+  const store = await cookies();
+  store.delete(VIEW_AS_COOKIE);
+  redirect("/admin/team");
+}
+
 export interface InviteFormState {
   ok?: boolean;
   error?: string;

@@ -3,9 +3,11 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { InviteEmployeeForm } from "@/components/admin/InviteEmployeeForm";
 import { ResendEmployeeInviteButton } from "@/components/admin/ResendEmployeeInviteButton";
 import { RemoveEmployeeButton } from "@/components/admin/RemoveEmployeeButton";
+import { viewAsEmployee } from "@/app/(admin)/actions";
 import { getInternalOrgId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -54,6 +56,13 @@ export default async function TeamPage() {
         no="01"
         title="Team"
         description="Your internal staff and sales reps. They see only the training you assign them."
+        action={
+          <form action={viewAsEmployee}>
+            <Button type="submit" variant="secondary" size="sm">
+              View as employee →
+            </Button>
+          </form>
+        }
       />
 
       <section className="mb-8">

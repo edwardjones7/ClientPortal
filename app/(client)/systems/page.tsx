@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { SystemCard } from "@/components/systems/SystemCard";
-import { requireClient } from "@/lib/auth";
+import { requireMember } from "@/lib/auth";
 import { SYSTEMS } from "@/lib/systems";
 
 export const metadata: Metadata = { title: "Systems" };
 
 export default async function SystemsPage() {
-  await requireClient();
+  await requireMember();
 
   return (
     <div>
