@@ -69,8 +69,8 @@ export default async function AdminCoursesPage() {
                   thumbnail={courseThumbnail(course, courseLessons[0])}
                   footer={
                     <span className="meta text-faint">
-                      {lessonCount} lesson{lessonCount === 1 ? "" : "s"} · {clients} client
-                      {clients === 1 ? "" : "s"}
+                      {lessonCount} lesson{lessonCount === 1 ? "" : "s"} · {clients}{" "}
+                      assignment{clients === 1 ? "" : "s"}
                     </span>
                   }
                 />

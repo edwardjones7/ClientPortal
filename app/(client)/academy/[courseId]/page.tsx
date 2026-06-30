@@ -5,10 +5,16 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CoursePlayer } from "@/components/courses/CoursePlayer";
-import { requireClient } from "@/lib/auth";
+import { CourseResources } from "@/components/courses/CourseResources";
+import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cx } from "@/lib/utils";
-import type { Course, CourseLesson, LessonProgress } from "@/lib/types";
+import type {
+  Course,
+  CourseLesson,
+  CourseResource,
+  LessonProgress,
+} from "@/lib/types";
 
 export const metadata: Metadata = { title: "Course" };
 
@@ -21,17 +27,18 @@ export default async function CoursePage({
 }) {
   const { courseId } = await params;
   const { lesson: lessonParam } = await searchParams;
-  const user = await requireClient();
+  const user = await requireMember();
   const supabase = await createClient();
 
-  // Gate on assignment to this org (covers a previewing admin too).
+  // Gate on assignment — to this member's org OR directly to them. (limit(1)
+  // since a course can be assigned both ways and we only need existence.)
   const { data: assignment } = await supabase
     .from("course_assignments")
     .select("id")
     .eq("course_id", courseId)
-    .eq("org_id", user.orgId)
-    .maybeSingle();
-  if (!assignment) notFound();
+    .or(`org_id.eq.${user.orgId},profile_id.eq.${user.id}`)
+    .limit(1);
+  if (!assignment || assignment.length === 0) notFound();
 
   const [{ data: course }, { data: lessons }, { data: progress }] = await Promise.all([
     supabase.from("courses").select("*").eq("id", courseId).single<Course>(),
@@ -49,6 +56,34 @@ export default async function CoursePage({
   ]);
 
   if (!course) notFound();
+
+  // Downloadable documents attached to this course (private bucket → sign URLs).
+  const { data: rawResources } = await supabase
+    .from("course_resources")
+    .select("id, title, file_name, storage_path, mime_type, size_bytes")
+    .eq("course_id", courseId)
+    .order("position", { ascending: true })
+    .returns<
+      Pick<
+        CourseResource,
+        "id" | "title" | "file_name" | "storage_path" | "mime_type" | "size_bytes"
+      >[]
+    >();
+
+  const resources = await Promise.all(
+    (rawResources ?? []).map(async (r) => {
+      const { data: signed } = await supabase.storage
+        .from("course-files")
+        .createSignedUrl(r.storage_path, 60 * 60);
+      return {
+        id: r.id,
+        title: r.title,
+        file_name: r.file_name,
+        size_bytes: r.size_bytes,
+        url: signed?.signedUrl ?? null,
+      };
+    }),
+  );
 
   const lessonList = lessons ?? [];
   const progressByLesson = new Map(
@@ -123,6 +158,8 @@ export default async function CoursePage({
           </Panel>
         </div>
       )}
+
+      <CourseResources resources={resources} />
     </div>
   );
 }

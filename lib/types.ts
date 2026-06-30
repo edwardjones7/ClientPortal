@@ -4,7 +4,7 @@
  * while the schema is small; swap for `supabase gen types` later if desired.
  */
 
-export type Role = "client" | "admin";
+export type Role = "client" | "admin" | "employee";
 
 export type TicketStatus =
   | "open"
@@ -27,6 +27,8 @@ export interface Organization {
   name: string;
   slug: string;
   lead_id: string | null;
+  /** True for the single internal "Elenos Team" org that employees belong to. */
+  is_internal: boolean;
   created_at: string;
 }
 
@@ -104,8 +106,23 @@ export interface CourseLesson {
 export interface CourseAssignment {
   id: string;
   course_id: string;
-  org_id: string;
+  /** Exactly one of org_id / profile_id is set (org-wide vs. per-person). */
+  org_id: string | null;
+  profile_id: string | null;
   assigned_by: string | null;
+  created_at: string;
+}
+
+export interface CourseResource {
+  id: string;
+  course_id: string;
+  title: string | null;
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  position: number;
+  created_by: string | null;
   created_at: string;
 }
 

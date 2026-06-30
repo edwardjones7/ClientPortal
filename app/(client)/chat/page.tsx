@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { ChatRoom } from "@/components/chat/ChatRoom";
-import { requireClient } from "@/lib/auth";
+import { requireMember } from "@/lib/auth";
 import { getChatData } from "@/lib/chat";
 
 export const metadata: Metadata = { title: "Chat" };
 
 export default async function ChatPage() {
-  const user = await requireClient();
+  const user = await requireMember();
   const { messages, participants } = await getChatData(user.orgId);
 
   return (

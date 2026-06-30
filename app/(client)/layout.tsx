@@ -1,10 +1,11 @@
-import { requireClient } from "@/lib/auth";
+import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
 import { ViewAsBanner } from "@/components/admin/ViewAsBanner";
 import type { NavGroup } from "@/components/shell/NavLinks";
 
-const NAV: NavGroup[] = [
+// Clients get the full portal.
+const CLIENT_NAV: NavGroup[] = [
   { items: [{ href: "/", label: "Dashboard", exact: true }] },
   {
     label: "Workspace",
@@ -23,12 +24,26 @@ const NAV: NavGroup[] = [
   { footer: true, items: [{ href: "/settings", label: "Settings" }] },
 ];
 
-export default async function ClientLayout({
+// Employees (internal staff) see only their training + a direct line to Elenos.
+const EMPLOYEE_NAV: NavGroup[] = [
+  { items: [{ href: "/", label: "Dashboard", exact: true }] },
+  {
+    label: "Training",
+    items: [{ href: "/academy", label: "Academy" }],
+  },
+  {
+    label: "Workspace",
+    items: [{ href: "/chat", label: "Chat" }],
+  },
+  { footer: true, items: [{ href: "/settings", label: "Settings" }] },
+];
+
+export default async function MemberLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireClient();
+  const user = await requireMember();
   const supabase = await createClient();
   const { data: org } = await supabase
     .from("organizations")
@@ -36,13 +51,14 @@ export default async function ClientLayout({
     .eq("id", user.orgId)
     .single();
 
-  // Admins only reach (client) pages when previewing via "view as client".
+  const isEmployee = user.profile.role === "employee";
+  // Admins only reach these pages when previewing via "view as client".
   const previewing = user.profile.role === "admin";
 
   return (
     <AppShell
-      nav={NAV}
-      eyebrow={org?.name ?? "Client"}
+      nav={isEmployee ? EMPLOYEE_NAV : CLIENT_NAV}
+      eyebrow={org?.name ?? (isEmployee ? "Elenos Team" : "Client")}
       userName={user.profile.full_name}
       userEmail={user.email}
     >

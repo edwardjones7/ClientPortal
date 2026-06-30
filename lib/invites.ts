@@ -81,7 +81,7 @@ export async function inviteUserToOrg(params: {
   email: string;
   fullName: string;
   orgId: string;
-  role?: "client" | "admin";
+  role?: "client" | "admin" | "employee";
 }): Promise<InviteResult> {
   const email = params.email.trim().toLowerCase();
   const fullName = params.fullName.trim();

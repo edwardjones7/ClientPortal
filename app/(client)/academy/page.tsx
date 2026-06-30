@@ -4,7 +4,7 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CourseCard } from "@/components/courses/CourseCard";
 import { RealtimeRefresh } from "@/components/RealtimeRefresh";
-import { requireClient } from "@/lib/auth";
+import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { courseThumbnail } from "@/lib/courses";
 import type { Course, CourseLesson, LessonProgress } from "@/lib/types";
@@ -12,20 +12,26 @@ import type { Course, CourseLesson, LessonProgress } from "@/lib/types";
 export const metadata: Metadata = { title: "Academy" };
 
 export default async function AcademyPage() {
-  const user = await requireClient();
+  const user = await requireMember();
   const supabase = await createClient();
 
-  // Courses assigned to this org (works for clients via RLS, and for an admin
-  // previewing the org — both are scoped by org_id rather than is_admin).
+  // Courses assigned to this member — either to their org or directly to them.
+  // (Also works for an admin previewing an org; RLS scopes the rest.)
   const { data: assignments } = await supabase
     .from("course_assignments")
     .select("course:courses(*)")
-    .eq("org_id", user.orgId)
+    .or(`org_id.eq.${user.orgId},profile_id.eq.${user.id}`)
     .returns<{ course: Course | null }[]>();
 
-  const courses = (assignments ?? [])
-    .map((a) => a.course)
-    .filter((c): c is Course => Boolean(c));
+  // A course can be assigned both org-wide and per-person — dedupe by id.
+  const courses = Array.from(
+    new Map(
+      (assignments ?? [])
+        .map((a) => a.course)
+        .filter((c): c is Course => Boolean(c))
+        .map((c) => [c.id, c]),
+    ).values(),
+  );
 
   const courseIds = courses.map((c) => c.id);
 

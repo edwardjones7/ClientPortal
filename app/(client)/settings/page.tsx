@@ -3,14 +3,15 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { Avatar } from "@/components/ui/Avatar";
 import { NameForm, TeammateForm } from "@/components/settings/SettingsForms";
-import { requireClient } from "@/lib/auth";
+import { requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
-  const user = await requireClient();
+  const user = await requireMember();
+  const isClient = user.profile.role === "client";
   const supabase = await createClient();
 
   const [{ data: org }, { data: members }] = await Promise.all([
@@ -57,13 +58,15 @@ export default async function SettingsPage() {
             </div>
           ))}
         </Panel>
-        <div className="mt-4">
-          <p className="mb-2 text-xs text-muted">Invite a teammate</p>
-          <TeammateForm />
-          <p className="meta mt-3">
-            Teammates get their own login · same tickets, same chat
-          </p>
-        </div>
+        {isClient ? (
+          <div className="mt-4">
+            <p className="mb-2 text-xs text-muted">Invite a teammate</p>
+            <TeammateForm />
+            <p className="meta mt-3">
+              Teammates get their own login · same tickets, same chat
+            </p>
+          </div>
+        ) : null}
       </section>
     </div>
   );

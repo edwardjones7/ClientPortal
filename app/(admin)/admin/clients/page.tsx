@@ -17,6 +17,7 @@ export default async function ClientsPage() {
       supabase
         .from("organizations")
         .select("id, name, created_at")
+        .eq("is_internal", false)
         .order("created_at", { ascending: false }),
       supabase.from("profiles").select("org_id").eq("role", "client"),
       supabase.from("tickets").select("org_id, status"),

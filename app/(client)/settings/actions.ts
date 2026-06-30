@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireClient } from "@/lib/auth";
+import { requireClient, requireMember } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { inviteUserToOrg } from "@/lib/invites";
 
@@ -18,7 +18,7 @@ export async function updateName(
   _prev: SettingsState,
   formData: FormData,
 ): Promise<SettingsState> {
-  const user = await requireClient();
+  const user = await requireMember();
   const fullName = String(formData.get("full_name") ?? "").trim();
   if (!fullName) return { error: "Enter your name." };
 

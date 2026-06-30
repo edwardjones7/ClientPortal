@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { requireAdmin, VIEW_AS_COOKIE } from "@/lib/auth";
+import { requireAdmin, getInternalOrgId, VIEW_AS_COOKIE } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrganization, inviteUserToOrg } from "@/lib/invites";
 
@@ -136,4 +136,69 @@ export async function removeClient(
 
   revalidatePath("/admin/clients");
   redirect("/admin/clients");
+}
+
+/* ---- Team (internal employees) ---- */
+
+/** Admin: invite an employee into the internal "Elenos Team" org. */
+export async function inviteEmployee(
+  _prev: InviteFormState,
+  formData: FormData,
+): Promise<InviteFormState> {
+  await requireAdmin();
+  const email = String(formData.get("email") ?? "").trim();
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  if (!email) return { error: "Enter an email to invite." };
+
+  const orgId = await getInternalOrgId();
+  if (!orgId) {
+    return { error: "Internal team org missing — apply migration 0006 first." };
+  }
+
+  const invite = await inviteUserToOrg({
+    email,
+    fullName,
+    orgId,
+    role: "employee",
+  });
+  if (!invite.ok) return { error: invite.error };
+
+  revalidatePath("/admin/team");
+  return {
+    ok: true,
+    message: `Send ${email} this link to set their password:`,
+    link: invite.link,
+  };
+}
+
+/** Admin: generate a fresh invite link for an employee (keeps their role). */
+export async function resendEmployeeInvite(
+  email: string,
+  fullName: string,
+): Promise<InviteFormState> {
+  await requireAdmin();
+  const orgId = await getInternalOrgId();
+  if (!orgId) {
+    return { error: "Internal team org missing — apply migration 0006 first." };
+  }
+  const invite = await inviteUserToOrg({
+    email,
+    fullName,
+    orgId,
+    role: "employee",
+  });
+  if (!invite.ok) return { error: invite.error };
+  return { ok: true, message: "Fresh link — send it to them:", link: invite.link };
+}
+
+/** Admin: permanently remove an employee (deletes their login + cascades). */
+export async function removeEmployee(
+  profileId: string,
+): Promise<{ error?: string }> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(profileId);
+  if (error) return { error: "Couldn't remove the employee. Try again." };
+  revalidatePath("/admin/team");
+  return {};
 }

@@ -48,6 +48,9 @@ export async function createTicket(
 ): Promise<CreateTicketResult> {
   const user = await getSessionUser();
   if (!user || !user.profile.org_id) return { error: "Sign in to submit work." };
+  if (user.profile.role !== "client") {
+    return { error: "Only client accounts can submit tickets." };
+  }
   const orgId = user.profile.org_id;
 
   const title = String(formData.get("title") ?? "").trim();

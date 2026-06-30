@@ -73,12 +73,12 @@ export async function getViewAsOrgId(): Promise<string | null> {
 }
 
 /**
- * Require a client (org member). Admins are redirected to the admin area,
- * UNLESS they're previewing a specific org via the "view as client" toggle —
- * then they're treated as a member of that org. Use this on (client) pages
- * that assume an org_id exists.
+ * Require an org member (client OR employee). Admins are redirected to the admin
+ * area UNLESS they're previewing a specific org via "view as client" — then
+ * they're treated as a member of that org. Use this on pages shared by clients
+ * and employees (academy, chat, settings, dashboard) that need an org_id.
  */
-export async function requireClient(): Promise<SessionUser & { orgId: string }> {
+export async function requireMember(): Promise<SessionUser & { orgId: string }> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
   if (user.profile.role === "admin") {
@@ -89,3 +89,35 @@ export async function requireClient(): Promise<SessionUser & { orgId: string }> 
   if (!user.profile.org_id) redirect("/login");
   return { ...user, orgId: user.profile.org_id };
 }
+
+/**
+ * Require a CLIENT specifically. Admins go to the admin area (unless previewing);
+ * employees are sent to the academy (they have an org_id but must not reach
+ * client-only surfaces like tickets/systems). Use on client-only pages.
+ */
+export async function requireClient(): Promise<SessionUser & { orgId: string }> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (user.profile.role === "admin") {
+    const viewAs = await getViewAsOrgId();
+    if (viewAs) return { ...user, orgId: viewAs };
+    redirect("/admin/clients");
+  }
+  if (user.profile.role === "employee") redirect("/academy");
+  if (!user.profile.org_id) redirect("/login");
+  return { ...user, orgId: user.profile.org_id };
+}
+
+/**
+ * Returns the id of the single internal "Elenos Team" org (the one employees
+ * belong to), or null if it hasn't been seeded yet. Cached per request.
+ */
+export const getInternalOrgId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("is_internal", true)
+    .maybeSingle();
+  return data?.id ?? null;
+});

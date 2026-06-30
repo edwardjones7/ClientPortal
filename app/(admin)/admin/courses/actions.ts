@@ -163,28 +163,94 @@ export async function deleteCourse(formData: FormData): Promise<void> {
   redirect("/admin/courses");
 }
 
-/** Admin: assign or unassign a course to a client org (idempotent). */
+/**
+ * Admin: assign or unassign a course to a whole org OR a single person
+ * (idempotent). The form carries exactly one of org_id / profile_id. We
+ * delete-then-insert rather than upsert because the uniqueness is enforced by
+ * partial indexes, which ON CONFLICT can't infer cleanly.
+ */
 export async function setCourseAssignment(formData: FormData): Promise<void> {
   const user = await requireAdmin();
   const courseId = String(formData.get("course_id") ?? "");
   const orgId = String(formData.get("org_id") ?? "");
+  const profileId = String(formData.get("profile_id") ?? "");
   const assigned = String(formData.get("assigned") ?? "") === "true";
-  if (!courseId || !orgId) return;
+  if (!courseId || (!orgId && !profileId)) return;
 
   const supabase = await createClient();
+
+  // Clear any existing identical target first (idempotent).
+  let del = supabase.from("course_assignments").delete().eq("course_id", courseId);
+  del = orgId ? del.eq("org_id", orgId) : del.eq("profile_id", profileId);
+  await del;
+
   if (assigned) {
-    await supabase
-      .from("course_assignments")
-      .upsert(
-        { course_id: courseId, org_id: orgId, assigned_by: user.id },
-        { onConflict: "course_id,org_id" },
-      );
-  } else {
-    await supabase
-      .from("course_assignments")
-      .delete()
-      .eq("course_id", courseId)
-      .eq("org_id", orgId);
+    await supabase.from("course_assignments").insert(
+      orgId
+        ? { course_id: courseId, org_id: orgId, assigned_by: user.id }
+        : { course_id: courseId, profile_id: profileId, assigned_by: user.id },
+    );
   }
   revalidatePath(`/admin/courses/${courseId}`);
+}
+
+/** Admin: record an uploaded course document (file already in `course-files`). */
+export async function recordCourseResource(input: {
+  courseId: string;
+  title: string | null;
+  storagePath: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+}): Promise<{ error?: string }> {
+  const user = await requireAdmin();
+  if (!input.courseId || !input.storagePath || !input.fileName) {
+    return { error: "Missing file info." };
+  }
+
+  const supabase = await createClient();
+  const { data: last } = await supabase
+    .from("course_resources")
+    .select("position")
+    .eq("course_id", input.courseId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const position = (last?.position ?? -1) + 1;
+
+  const { error } = await supabase.from("course_resources").insert({
+    course_id: input.courseId,
+    title: input.title,
+    storage_path: input.storagePath,
+    file_name: input.fileName,
+    mime_type: input.mimeType,
+    size_bytes: input.sizeBytes,
+    position,
+    created_by: user.id,
+  });
+  if (error) return { error: "Couldn't save the document." };
+
+  revalidatePath(`/admin/courses/${input.courseId}`);
+  return {};
+}
+
+/** Admin: delete a course document (removes the storage object + the row). */
+export async function deleteCourseResource(input: {
+  id: string;
+  courseId: string;
+}): Promise<void> {
+  await requireAdmin();
+  if (!input.id) return;
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("course_resources")
+    .select("storage_path")
+    .eq("id", input.id)
+    .maybeSingle();
+  if (row?.storage_path) {
+    await supabase.storage.from("course-files").remove([row.storage_path]);
+  }
+  await supabase.from("course_resources").delete().eq("id", input.id);
+  revalidatePath(`/admin/courses/${input.courseId}`);
 }
