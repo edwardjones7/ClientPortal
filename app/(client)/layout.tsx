@@ -24,9 +24,14 @@ const CLIENT_NAV: NavGroup[] = [
   { footer: true, items: [{ href: "/settings", label: "Settings" }] },
 ];
 
-// Employees (internal staff) see only their training + a direct line to Elenos.
+// Employees (internal staff) see their training, their outreach sheet, and a
+// direct line to Elenos.
 const EMPLOYEE_NAV: NavGroup[] = [
   { items: [{ href: "/", label: "Dashboard", exact: true }] },
+  {
+    label: "Sales",
+    items: [{ href: "/outreach", label: "Outreach" }],
+  },
   {
     label: "Training",
     items: [{ href: "/academy", label: "Academy" }],

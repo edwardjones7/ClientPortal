@@ -65,15 +65,27 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin gate: /admin requires role = 'admin'.
-  if (user && pathname.startsWith("/admin")) {
+  // Role gates: /admin requires 'admin'; /outreach requires 'employee'
+  // (admins pass too — they may be previewing via "view as employee").
+  const needsAdmin = pathname.startsWith("/admin");
+  const needsEmployee = pathname.startsWith("/outreach");
+  if (user && (needsAdmin || needsEmployee)) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    if (profile?.role !== "admin") {
+    if (needsAdmin && profile?.role !== "admin") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+    if (
+      needsEmployee &&
+      profile?.role !== "employee" &&
+      profile?.role !== "admin"
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
