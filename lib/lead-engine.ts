@@ -15,6 +15,7 @@ import "server-only";
 
 export interface SheetRow {
   id: string;
+  leadId: string | null;
   sortOrder: number;
   status: string;
   businessName: string;
@@ -121,6 +122,122 @@ export async function fetchRepSheet(
   }
 
   return { ok: true, data: (await res.json()) as RepSheet };
+}
+
+export interface RepLeadSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  title: string | null;
+  companyName: string;
+  companyDomain: string | null;
+  industry: string | null;
+  companyLocation: string | null;
+  email: string | null;
+  phone: string | null;
+  icpScore: number | null;
+  timingScore: string | null;
+  status: string;
+  enrichedAt: string | null;
+}
+
+export interface PainSignal {
+  signal?: string;
+  strength?: string;
+  source?: string;
+}
+
+export interface TriggerEvent {
+  type?: string;
+  title?: string;
+  date?: string;
+}
+
+export interface RepLeadDetail extends RepLeadSummary {
+  seniority: string | null;
+  emailVerified: boolean;
+  linkedinUrl: string | null;
+  companySize: string | null;
+  companyDescription: string | null;
+  icpScoreReasoning: string | null;
+  tier: string | null;
+  companyBrief: string | null;
+  contactBrief: string | null;
+  competitiveIntel: string | null;
+  recommendedAngle: string | null;
+  notes: string | null;
+  painSignals: Array<PainSignal | string>;
+  techStack: string[];
+  triggerEvents: TriggerEvent[];
+  recentNews: Array<{ title?: string; url?: string; date?: string }>;
+  socialActivity: Array<
+    | { platform?: string; title?: string; snippet?: string; date?: string }
+    | string
+  >;
+}
+
+/** Read-only: the leads behind the rep's sheet rows (the portal Leads tab). */
+export async function fetchRepLeads(
+  repEmail: string,
+): Promise<SheetResult<RepLeadSummary[]>> {
+  const cfg = config();
+  if (!cfg) {
+    return { ok: false, error: "The outreach connection is not configured." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `${cfg.baseUrl}/api/portal/leads?email=${encodeURIComponent(repEmail)}`,
+      {
+        headers: { Authorization: `Bearer ${cfg.secret}` },
+        cache: "no-store",
+      },
+    );
+  } catch {
+    return { ok: false, error: "Could not reach the lead engine." };
+  }
+
+  if (res.status === 404) {
+    return { ok: false, error: "No leads are set up for this account yet." };
+  }
+  if (!res.ok) {
+    return { ok: false, error: `Lead engine returned ${res.status}.` };
+  }
+
+  const body = (await res.json()) as { leads: RepLeadSummary[] };
+  return { ok: true, data: body.leads };
+}
+
+/** Read-only full brief for one of the rep's leads. */
+export async function fetchRepLead(
+  leadId: string,
+  repEmail: string,
+): Promise<SheetResult<RepLeadDetail>> {
+  const cfg = config();
+  if (!cfg) {
+    return { ok: false, error: "The outreach connection is not configured." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `${cfg.baseUrl}/api/portal/leads/${leadId}?email=${encodeURIComponent(repEmail)}`,
+      {
+        headers: { Authorization: `Bearer ${cfg.secret}` },
+        cache: "no-store",
+      },
+    );
+  } catch {
+    return { ok: false, error: "Could not reach the lead engine." };
+  }
+
+  if (!res.ok) {
+    return { ok: false, error: `Lead engine returned ${res.status}.` };
+  }
+
+  const body = (await res.json()) as { lead: RepLeadDetail };
+  return { ok: true, data: body.lead };
 }
 
 export async function updateSheetRow(

@@ -30,7 +30,10 @@ const EMPLOYEE_NAV: NavGroup[] = [
   { items: [{ href: "/", label: "Dashboard", exact: true }] },
   {
     label: "Sales",
-    items: [{ href: "/outreach", label: "Outreach" }],
+    items: [
+      { href: "/outreach", label: "Outreach" },
+      { href: "/leads", label: "Leads" },
+    ],
   },
   {
     label: "Training",

@@ -65,10 +65,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Role gates: /admin requires 'admin'; /outreach requires 'employee'
-  // (admins pass too — they may be previewing via "view as employee").
+  // Role gates: /admin requires 'admin'; /outreach and /leads require
+  // 'employee' (admins pass too — they may be previewing via "view as").
   const needsAdmin = pathname.startsWith("/admin");
-  const needsEmployee = pathname.startsWith("/outreach");
+  const needsEmployee =
+    pathname.startsWith("/outreach") || pathname.startsWith("/leads");
   if (user && (needsAdmin || needsEmployee)) {
     const { data: profile } = await supabase
       .from("profiles")

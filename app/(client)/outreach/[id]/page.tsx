@@ -58,9 +58,20 @@ export default async function ProspectPage({
         title={row.businessName || "Untitled prospect"}
         description={subtitle || undefined}
         action={
-          <ButtonLink href="/outreach" variant="ghost" size="sm">
-            ← Your sheet
-          </ButtonLink>
+          <div className="flex flex-wrap items-center gap-2">
+            {row.leadId ? (
+              <ButtonLink
+                href={`/leads/${row.leadId}`}
+                variant="secondary"
+                size="sm"
+              >
+                Full lead brief →
+              </ButtonLink>
+            ) : null}
+            <ButtonLink href="/outreach" variant="ghost" size="sm">
+              ← Your sheet
+            </ButtonLink>
+          </div>
         }
       />
 
