@@ -10,6 +10,10 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    label: "Sales",
+    items: [{ href: "/admin/outreach", label: "Team Leads" }],
+  },
+  {
     label: "Workspace",
     items: [
       { href: "/admin/tickets", label: "Tickets" },

@@ -176,6 +176,70 @@ export interface RepLeadDetail extends RepLeadSummary {
   >;
 }
 
+export interface TeamAssignment extends SheetRow {
+  hiddenFromRep: boolean;
+  rep: { id: string; name: string; email: string } | null;
+}
+
+/** Admin overview: every rep-assigned sheet row, with rep + visibility. */
+export async function fetchTeamAssignments(): Promise<
+  SheetResult<TeamAssignment[]>
+> {
+  const cfg = config();
+  if (!cfg) {
+    return { ok: false, error: "The outreach connection is not configured." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${cfg.baseUrl}/api/portal/admin/prospects`, {
+      headers: { Authorization: `Bearer ${cfg.secret}` },
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, error: "Could not reach the lead engine." };
+  }
+
+  if (!res.ok) {
+    return { ok: false, error: `Lead engine returned ${res.status}.` };
+  }
+
+  const body = (await res.json()) as { prospects: TeamAssignment[] };
+  return { ok: true, data: body.prospects };
+}
+
+/** Admin: hide (revoke) or restore a row in the rep's portal view. */
+export async function setAssignmentHidden(
+  rowId: string,
+  hidden: boolean,
+): Promise<SheetResult<{ id: string }>> {
+  const cfg = config();
+  if (!cfg) {
+    return { ok: false, error: "The outreach connection is not configured." };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${cfg.baseUrl}/api/portal/admin/prospects/${rowId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${cfg.secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ hidden }),
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, error: "Could not reach the lead engine." };
+  }
+
+  if (!res.ok) {
+    return { ok: false, error: `Save failed (${res.status}).` };
+  }
+
+  return { ok: true, data: (await res.json()) as { id: string } };
+}
+
 /** Read-only: the leads behind the rep's sheet rows (the portal Leads tab). */
 export async function fetchRepLeads(
   repEmail: string,

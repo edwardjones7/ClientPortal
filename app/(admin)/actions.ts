@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrganization, inviteUserToOrg } from "@/lib/invites";
+import { setAssignmentHidden } from "@/lib/lead-engine";
 
 /**
  * Admin: preview the portal as a given client org. Sets the view-as cookie and
@@ -86,6 +87,20 @@ export async function exitEmployeeView() {
   store.delete(VIEW_AS_COOKIE);
   store.delete(VIEW_AS_REP_COOKIE);
   redirect("/admin/team");
+}
+
+/**
+ * Admin: revoke or restore a team lead in the rep's portal view. The row and
+ * its logged activity stay in the lead engine either way — hiding only
+ * removes it from the rep's Outreach sheet and Leads tab.
+ */
+export async function toggleAssignmentVisibility(
+  rowId: string,
+  hidden: boolean,
+) {
+  await requireAdmin();
+  await setAssignmentHidden(rowId, hidden);
+  revalidatePath("/admin/outreach");
 }
 
 export interface InviteFormState {
