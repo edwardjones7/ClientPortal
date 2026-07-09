@@ -82,3 +82,67 @@ export async function logTouch(
   revalidatePath(`/outreach/${rowId}`);
   return { ok: true };
 }
+
+/* ---- Inline sheet editing ---- */
+
+const EDITABLE_KEYS = [
+  "status",
+  "touchCount",
+  "firstTouch",
+  "lastTouch",
+  "channel",
+  "outcome",
+  "objection",
+  "stage",
+  "nextStep",
+  "nextStepDate",
+  "activityNotes",
+] as const;
+
+export type EditableKey = (typeof EDITABLE_KEYS)[number];
+
+export interface CellSaveResult {
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * Save a single cell from the rep's spreadsheet view. The lead engine
+ * enforces row ownership and the activity-only column set — this action
+ * shapes one key/value into an update.
+ */
+export async function saveSheetCell(
+  rowId: string,
+  key: EditableKey,
+  value: string | number | null,
+): Promise<CellSaveResult> {
+  const user = await getSessionUser();
+  if (!user || user.profile.role !== "employee") {
+    return { ok: false, error: "Only reps can edit their sheet." };
+  }
+  if (!rowId || !(EDITABLE_KEYS as readonly string[]).includes(key)) {
+    return { ok: false, error: "That column can't be edited." };
+  }
+
+  const updates: ActivityUpdate = {};
+  if (key === "touchCount") {
+    const n =
+      typeof value === "number" ? value : Number.parseInt(String(value), 10);
+    updates.touchCount = Number.isFinite(n) ? Math.max(0, n) : null;
+  } else if (key === "status") {
+    const s = String(value ?? "").trim();
+    if (!(SHEET_STATUSES as readonly string[]).includes(s)) {
+      return { ok: false, error: "Pick a valid status." };
+    }
+    updates.status = s;
+  } else {
+    const s = typeof value === "string" ? value.trim() : value;
+    updates[key] = (s === "" ? null : s) as never;
+  }
+
+  const result = await updateSheetRow(rowId, user.email, updates);
+  if (!result.ok) return { ok: false, error: result.error };
+
+  revalidatePath("/outreach");
+  return { ok: true };
+}
