@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/Button";
-import { requireMember } from "@/lib/auth";
+import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { fetchRepLead, type PainSignal } from "@/lib/lead-engine";
 import { cx } from "@/lib/utils";
 
@@ -54,9 +54,12 @@ export default async function RepLeadPage({
 }) {
   const user = await requireMember();
   if (!user.isEmployee) redirect("/");
+  const sheetEmail =
+    user.profile.role === "admin" ? await getViewAsRepEmail() : user.email;
+  if (!sheetEmail) notFound();
   const { id } = await params;
 
-  const result = await fetchRepLead(id, user.email);
+  const result = await fetchRepLead(id, sheetEmail);
   if (!result.ok) notFound();
   const lead = result.data;
 

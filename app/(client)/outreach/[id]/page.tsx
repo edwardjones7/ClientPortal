@@ -5,7 +5,7 @@ import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/Button";
 import { LogTouchForm } from "@/components/rep/LogTouchForm";
 import { redirect } from "next/navigation";
-import { requireMember } from "@/lib/auth";
+import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { fetchRepSheet } from "@/lib/lead-engine";
 
 export const metadata: Metadata = { title: "Prospect" };
@@ -34,11 +34,14 @@ export default async function ProspectPage({
 }) {
   const user = await requireMember();
   if (!user.isEmployee) redirect("/");
+  const previewing = user.profile.role === "admin";
+  const sheetEmail = previewing ? await getViewAsRepEmail() : user.email;
+  if (!sheetEmail) notFound();
   const { id } = await params;
 
   // One call returns the rep's whole sheet; ownership is enforced by the
   // lead engine — a row that isn't theirs simply isn't in the list.
-  const result = await fetchRepSheet(user.email);
+  const result = await fetchRepSheet(sheetEmail);
   if (!result.ok) notFound();
   const row = result.data.prospects.find((p) => p.id === id);
   if (!row) notFound();
@@ -145,6 +148,11 @@ export default async function ProspectPage({
       {/* Log a touch */}
       <Panel className="p-6">
         <h2 className="mb-4 text-base font-semibold text-fg">Log a touch</h2>
+        {previewing ? (
+          <p className="text-sm text-muted">
+            Preview only — touches are logged by the rep.
+          </p>
+        ) : (
         <LogTouchForm
           rowId={row.id}
           status={row.status}
@@ -153,6 +161,7 @@ export default async function ProspectPage({
           hadFirstTouch={!!row.firstTouch}
           existingNotes={row.activityNotes ?? ""}
         />
+        )}
       </Panel>
     </div>
   );

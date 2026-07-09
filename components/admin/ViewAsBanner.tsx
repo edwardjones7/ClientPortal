@@ -8,14 +8,22 @@ import { exitClientView, exitEmployeeView } from "@/app/(admin)/actions";
 export function ViewAsBanner({
   orgName,
   isEmployee = false,
+  repLabel,
 }: {
   orgName: string;
   isEmployee?: boolean;
+  /** Set when previewing one specific employee (their name or email). */
+  repLabel?: string | null;
 }) {
   return (
     <div className="mb-8 flex items-center justify-between gap-4 rounded-md border border-accent/40 bg-accent/10 px-4 py-3">
       <p className="text-sm text-fg">
-        {isEmployee ? (
+        {isEmployee && repLabel ? (
+          <>
+            Previewing as <span className="font-medium">{repLabel}</span> —
+            their real sheet and leads, read-only.
+          </>
+        ) : isEmployee ? (
           <>
             Previewing as <span className="font-medium">{orgName}</span> — this
             is what your team sees.

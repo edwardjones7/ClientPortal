@@ -12,6 +12,14 @@ import type { Profile } from "@/lib/types";
 export const VIEW_AS_COOKIE = "portal_view_as_org";
 
 /**
+ * Companion cookie for previewing a SPECIFIC employee: holds their login
+ * email so the outreach/leads pages can resolve that rep's sheet in the
+ * lead engine. Only meaningful while VIEW_AS_COOKIE points at the internal
+ * org. Set by `viewAsSpecificEmployee`, cleared with the other view-as exits.
+ */
+export const VIEW_AS_REP_COOKIE = "portal_view_as_rep";
+
+/**
  * Auth/session helpers for Server Components and Server Actions.
  * Route-level protection lives in middleware; these guards add a second
  * layer at the data boundary and give pages a typed profile to work with.
@@ -70,6 +78,18 @@ export async function getViewAsOrgId(): Promise<string | null> {
   if (user?.profile.role !== "admin") return null;
   const store = await cookies();
   return store.get(VIEW_AS_COOKIE)?.value ?? null;
+}
+
+/**
+ * If the current admin is previewing a specific employee, that employee's
+ * email — the key the lead engine resolves sheets by. Null for real
+ * employees (they use their own email) and non-previewing admins.
+ */
+export async function getViewAsRepEmail(): Promise<string | null> {
+  const user = await getSessionUser();
+  if (user?.profile.role !== "admin") return null;
+  const store = await cookies();
+  return store.get(VIEW_AS_REP_COOKIE)?.value ?? null;
 }
 
 /**

@@ -4,7 +4,7 @@ import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { redirect } from "next/navigation";
-import { requireMember } from "@/lib/auth";
+import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { fetchRepSheet } from "@/lib/lead-engine";
 import { cx } from "@/lib/utils";
 
@@ -30,7 +30,24 @@ function cell(v: string | number | null | undefined): string {
 export default async function OutreachPage() {
   const user = await requireMember();
   if (!user.isEmployee) redirect("/");
-  const result = await fetchRepSheet(user.email);
+
+  // Admin previews resolve the sheet by the chosen employee's email.
+  const previewing = user.profile.role === "admin";
+  const sheetEmail = previewing ? await getViewAsRepEmail() : user.email;
+  if (!sheetEmail) {
+    return (
+      <div>
+        <PageHeading no="01" title="Outreach" />
+        <Panel className="p-6">
+          <p className="text-sm text-muted">
+            Pick a team member on Admin &gt; Team (&quot;View as&quot;) to
+            preview their sheet.
+          </p>
+        </Panel>
+      </div>
+    );
+  }
+  const result = await fetchRepSheet(sheetEmail);
 
   if (!result.ok) {
     return (

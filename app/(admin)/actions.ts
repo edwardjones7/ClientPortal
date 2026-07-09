@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { requireAdmin, getInternalOrgId, VIEW_AS_COOKIE } from "@/lib/auth";
+import {
+  requireAdmin,
+  getInternalOrgId,
+  VIEW_AS_COOKIE,
+  VIEW_AS_REP_COOKIE,
+} from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrganization, inviteUserToOrg } from "@/lib/invites";
 
@@ -20,6 +25,7 @@ export async function viewAsClient(orgId: string) {
     sameSite: "lax",
     path: "/",
   });
+  store.delete(VIEW_AS_REP_COOKIE);
   redirect("/");
 }
 
@@ -28,6 +34,7 @@ export async function exitClientView() {
   await requireAdmin();
   const store = await cookies();
   store.delete(VIEW_AS_COOKIE);
+  store.delete(VIEW_AS_REP_COOKIE);
   redirect("/admin/clients");
 }
 
@@ -46,7 +53,30 @@ export async function viewAsEmployee() {
     sameSite: "lax",
     path: "/",
   });
+  store.delete(VIEW_AS_REP_COOKIE);
   redirect("/");
+}
+
+/**
+ * Admin: preview the portal as ONE employee — the employee layout plus that
+ * rep's actual outreach sheet and leads, resolved by their email.
+ */
+export async function viewAsSpecificEmployee(email: string) {
+  await requireAdmin();
+  const orgId = await getInternalOrgId();
+  if (!orgId) redirect("/admin/team");
+  const store = await cookies();
+  store.set(VIEW_AS_COOKIE, orgId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  store.set(VIEW_AS_REP_COOKIE, email, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  redirect("/outreach");
 }
 
 /** Admin: stop previewing as an employee and return to the team area. */
@@ -54,6 +84,7 @@ export async function exitEmployeeView() {
   await requireAdmin();
   const store = await cookies();
   store.delete(VIEW_AS_COOKIE);
+  store.delete(VIEW_AS_REP_COOKIE);
   redirect("/admin/team");
 }
 

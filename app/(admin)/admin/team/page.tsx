@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { InviteEmployeeForm } from "@/components/admin/InviteEmployeeForm";
 import { ResendEmployeeInviteButton } from "@/components/admin/ResendEmployeeInviteButton";
 import { RemoveEmployeeButton } from "@/components/admin/RemoveEmployeeButton";
-import { viewAsEmployee } from "@/app/(admin)/actions";
+import { viewAsEmployee, viewAsSpecificEmployee } from "@/app/(admin)/actions";
 import { getInternalOrgId } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -84,6 +84,14 @@ export default async function TeamPage() {
                     </p>
                     <p className="truncate text-xs text-faint">{m.email}</p>
                   </div>
+                  <form
+                    action={viewAsSpecificEmployee.bind(null, m.email)}
+                    className="shrink-0"
+                  >
+                    <Button type="submit" variant="ghost" size="sm">
+                      View as →
+                    </Button>
+                  </form>
                   {active ? (
                     <span className="shrink-0 text-xs text-resolved">Active</span>
                   ) : (

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { PageHeading } from "@/components/brand/PageHeading";
 import { Panel } from "@/components/ui/Panel";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { requireMember } from "@/lib/auth";
+import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { fetchRepLeads } from "@/lib/lead-engine";
 import { cx } from "@/lib/utils";
 
@@ -25,7 +25,24 @@ export default async function RepLeadsPage() {
   const user = await requireMember();
   if (!user.isEmployee) redirect("/");
 
-  const result = await fetchRepLeads(user.email);
+  // Admin previews resolve the leads by the chosen employee's email.
+  const sheetEmail =
+    user.profile.role === "admin" ? await getViewAsRepEmail() : user.email;
+  if (!sheetEmail) {
+    return (
+      <div>
+        <PageHeading no="01" title="Leads" />
+        <Panel className="p-6">
+          <p className="text-sm text-muted">
+            Pick a team member on Admin &gt; Team (&quot;View as&quot;) to
+            preview their leads.
+          </p>
+        </Panel>
+      </div>
+    );
+  }
+
+  const result = await fetchRepLeads(sheetEmail);
 
   if (!result.ok) {
     return (

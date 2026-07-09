@@ -1,4 +1,4 @@
-import { requireMember } from "@/lib/auth";
+import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/AppShell";
 import { ViewAsBanner } from "@/components/admin/ViewAsBanner";
@@ -66,6 +66,8 @@ export default async function MemberLayout({
   const isEmployee = user.isEmployee;
   // Admins only reach these pages when previewing via "view as client/employee".
   const previewing = user.profile.role === "admin";
+  const previewRep =
+    previewing && isEmployee ? await getViewAsRepEmail() : null;
 
   return (
     <AppShell
@@ -78,6 +80,7 @@ export default async function MemberLayout({
         <ViewAsBanner
           orgName={org?.name ?? (isEmployee ? "an employee" : "this client")}
           isEmployee={isEmployee}
+          repLabel={previewRep}
         />
       ) : null}
       {children}
