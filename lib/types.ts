@@ -141,6 +141,23 @@ export interface LessonProgress {
   updated_at: string;
 }
 
+/* ---- Call simulator (sales-rep training) ---- */
+
+export interface SimAttempt {
+  id: string;
+  profile_id: string;
+  org_id: string;
+  score: number;
+  total: number;
+  pct: number;
+  passed: boolean;
+  duration_ms: number;
+  timed_out: number;
+  /** Per-category results keyed by category id, e.g. { p: { right, total } }. */
+  breakdown: Record<string, { right: number; total: number }> | null;
+  created_at: string;
+}
+
 /* ---- Display metadata (labels + brand colors) ---- */
 
 export const TICKET_STATUS: Record<

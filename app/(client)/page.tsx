@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { requireMember, type SessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/utils";
-import { courseThumbnail } from "@/lib/courses";
+import { resolveCourseThumbnails } from "@/lib/course-thumbnails";
 import type { Course, CourseLesson, LessonProgress, Ticket } from "@/lib/types";
 
 const ACTIVE = ["open", "in_progress", "waiting_on_client"];
@@ -76,6 +76,11 @@ async function EmployeeDashboard({ user }: { user: SessionUser & { orgId: string
   );
   const totalLessons = (lessons ?? []).length;
   const doneLessons = (lessons ?? []).filter((l) => completed.has(l.id)).length;
+  const thumbnails = await resolveCourseThumbnails(
+    supabase,
+    courses,
+    (id) => lessonsByCourse.get(id)?.[0],
+  );
   const firstName = (user.profile.full_name ?? "").split(" ")[0];
 
   return (
@@ -132,7 +137,7 @@ async function EmployeeDashboard({ user }: { user: SessionUser & { orgId: string
                   <CourseCard
                     title={course.title}
                     description={course.description}
-                    thumbnail={courseThumbnail(course, courseLessons[0])}
+                    thumbnail={thumbnails.get(course.id) ?? null}
                     footer={
                       <span className="meta text-faint">
                         {total === 0
