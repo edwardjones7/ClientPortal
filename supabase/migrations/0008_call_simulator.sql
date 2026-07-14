@@ -1,6 +1,7 @@
 -- 0008_call_simulator.sql — Live Call Simulator attempts (sales-rep training)
 -- Records each full run of the 50-question call simulator so admins can see
--- who is certified (>= 90%). Lives entirely in the `portal` schema, idempotent,
+-- who is certified (>= SIM_PASS_PCT in lib/call-sim.ts). Lives entirely in the
+-- `portal` schema, idempotent,
 -- touches nothing in `public`. Apply AFTER 0001..0007.
 
 create table if not exists portal.sim_attempts (
@@ -10,7 +11,7 @@ create table if not exists portal.sim_attempts (
   score       int  not null,
   total       int  not null,
   pct         int  not null,           -- rounded percent, 0..100
-  passed      boolean not null,        -- pct >= 90 on a full run
+  passed      boolean not null,        -- pct >= pass threshold on a full run
   duration_ms int  not null default 0, -- total time on the phones
   timed_out   int  not null default 0, -- questions lost to the 45s clock
   breakdown   jsonb,                   -- per-category { right, total }

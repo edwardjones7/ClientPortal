@@ -33,7 +33,7 @@ export const SIM_CATEGORIES: Record<
   s: { label: "Process & Support", color: "var(--color-resolved)" },
 };
 
-export const SIM_PASS_PCT = 90;
+export const SIM_PASS_PCT = 84;
 export const SIM_SECONDS_PER_QUESTION = 45;
 
 export function formatSimDuration(ms: number): string {
