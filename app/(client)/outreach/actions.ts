@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, getViewAsRepEmail } from "@/lib/auth";
 import {
   updateSheetRow,
   SHEET_STATUSES,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/lead-engine";
 import {
   addLocalRows,
+  addLocalRowsForEmail,
   updateLocalRow,
   ADD_ROWS_BATCH,
   LOCAL_EDITABLE_KEYS,
@@ -196,10 +197,27 @@ export interface AddRowsResult {
   error?: string;
 }
 
-/** Append a batch of blank rows to the rep's own section of the sheet. */
+/**
+ * Append a batch of blank rows to the sheet. A rep adds to their own sheet;
+ * an admin previewing a specific rep ("View as") adds to that rep's sheet.
+ */
 export async function addSheetRows(): Promise<AddRowsResult> {
   const user = await getSessionUser();
-  if (!user || user.profile.role !== "employee") {
+  if (!user) return { ok: false, error: "Sign in first." };
+
+  // Admin previewing a rep: provision rows on that rep's sheet.
+  if (user.profile.role === "admin") {
+    const repEmail = await getViewAsRepEmail();
+    if (!repEmail) {
+      return { ok: false, error: "Pick a rep on Admin > Team first." };
+    }
+    const rows = await addLocalRowsForEmail(repEmail, ADD_ROWS_BATCH);
+    if (rows.length === 0) return { ok: false, error: "Couldn't add rows." };
+    revalidatePath("/outreach");
+    return { ok: true, rows };
+  }
+
+  if (user.profile.role !== "employee") {
     return { ok: false, error: "Only reps can edit their sheet." };
   }
 

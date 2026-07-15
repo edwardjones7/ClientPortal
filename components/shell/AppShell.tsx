@@ -54,8 +54,11 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 px-5 py-8 md:px-10 md:py-12">{children}</main>
+      {/* Main — min-w-0 lets wide children (e.g. the outreach grid) scroll
+          horizontally instead of overflowing the flex row and clipping. */}
+      <main className="min-w-0 flex-1 px-5 py-8 md:px-10 md:py-12">
+        {children}
+      </main>
     </div>
   );
 }

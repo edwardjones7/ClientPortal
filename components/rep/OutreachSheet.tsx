@@ -386,7 +386,7 @@ export function OutreachSheet({
           <span className="text-xs text-faint">
             {filteredRows.length} of {rows.length} row{rows.length !== 1 ? "s" : ""}
           </span>
-          {canAddRows && !readOnly ? (
+          {canAddRows ? (
             <button
               type="button"
               onClick={handleAddRows}

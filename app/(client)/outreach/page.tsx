@@ -65,11 +65,7 @@ export default async function OutreachPage() {
         title="Outreach"
         description={`${filled} prospect${filled === 1 ? "" : "s"} on your sheet · ${worked} worked · ${booked} booked`}
       />
-      <OutreachSheet
-        rows={rows}
-        readOnly={previewing}
-        canAddRows={!previewing}
-      />
+      <OutreachSheet rows={rows} readOnly={previewing} canAddRows />
     </div>
   );
 }

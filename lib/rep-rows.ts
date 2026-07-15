@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { SheetRow } from "@/lib/lead-engine";
 
 /**
@@ -217,4 +218,43 @@ export async function fetchLocalRowsByEmail(email: string): Promise<SheetRow[]> 
     .maybeSingle<{ id: string }>();
   if (!profile) return [];
   return fetchLocalRows(profile.id);
+}
+
+/**
+ * Admin: append blank rows to a rep's sheet by their login email. Uses the
+ * service-role client because RLS lets a rep insert only their own rows —
+ * this is the admin provisioning rows for someone else from the "View as"
+ * preview. Returns the new rows (empty on unknown email / failure).
+ */
+export async function addLocalRowsForEmail(
+  email: string,
+  count: number,
+): Promise<SheetRow[]> {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email.toLowerCase())
+    .maybeSingle<{ id: string }>();
+  if (!profile) return [];
+
+  const { data: last } = await admin
+    .from("rep_prospects")
+    .select("sort_order")
+    .eq("profile_id", profile.id)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ sort_order: number }>();
+
+  const start = (last?.sort_order ?? 0) + 1;
+  const blanks = Array.from({ length: count }, (_, i) => ({
+    profile_id: profile.id,
+    sort_order: start + i,
+  }));
+  const { data, error } = await admin
+    .from("rep_prospects")
+    .insert(blanks)
+    .select("*");
+  if (error || !data) return [];
+  return (data as DbRow[]).map(toSheetRow);
 }
