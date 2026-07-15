@@ -42,6 +42,9 @@ export interface SheetRow {
   nextStep: string | null;
   nextStepDate: string | null;
   activityNotes: string | null;
+  /** True for the rep's own rows (portal.rep_prospects) — every column
+   * editable — vs. lead-engine rows where Elenos owns the prospect columns. */
+  local?: boolean;
 }
 
 export interface RepSheet {

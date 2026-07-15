@@ -2,14 +2,20 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { saveSheetCell, type EditableKey } from "@/app/(client)/outreach/actions";
+import {
+  addSheetRows,
+  saveSheetCell,
+  type SheetCellKey,
+} from "@/app/(client)/outreach/actions";
 import type { SheetRow } from "@/lib/lead-engine";
 import { cx } from "@/lib/utils";
 
 /**
  * The rep's outreach sheet as an inline-editable spreadsheet — mirrors the
- * grid in the lead engine. Activity columns are editable; the columns Elenos
- * owns (business, contact, priority, prospect notes) are read-only here.
+ * grid in the lead engine. On assigned (lead-engine) rows only the activity
+ * columns are editable — the columns Elenos owns (business, contact,
+ * priority, prospect notes) are read-only. On the rep's own rows (`local`,
+ * the blank outline below the assignments) every column is theirs to fill.
  * Click a cell to edit · Enter commits & moves down · Tab moves right ·
  * Esc cancels.
  */
@@ -86,15 +92,18 @@ function displayValue(row: SheetRow, col: ColumnDef): string {
 export function OutreachSheet({
   rows: initialRows,
   readOnly = false,
+  canAddRows = false,
 }: {
   rows: SheetRow[];
   readOnly?: boolean;
+  canAddRows?: boolean;
 }) {
   const [rows, setRows] = useState<SheetRow[]>(initialRows);
   const [editing, setEditing] = useState<{ rowId: string; colKey: keyof SheetRow } | null>(null);
   const [draft, setDraft] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [addingRows, setAddingRows] = useState(false);
   const skipBlurRef = useRef(false);
 
   const filteredRows = useMemo(() => {
@@ -108,10 +117,13 @@ export function OutreachSheet({
     );
   }, [rows, search]);
 
-  const editableColumns = COLUMNS.filter((c) => c.editable);
+  /** Local (rep-owned) rows are editable in every column. */
+  function editableCols(row: SheetRow): ColumnDef[] {
+    return row.local ? COLUMNS : COLUMNS.filter((c) => c.editable);
+  }
 
   function startEditing(row: SheetRow, col: ColumnDef) {
-    if (readOnly || !col.editable) return;
+    if (readOnly || (!col.editable && !row.local)) return;
     skipBlurRef.current = false;
     setEditing({ rowId: row.id, colKey: col.key });
     setDraft(displayValue(row, col));
@@ -145,7 +157,12 @@ export function OutreachSheet({
     );
     setError(null);
 
-    const result = await saveSheetCell(rowId, col.key as EditableKey, next);
+    const result = await saveSheetCell(
+      rowId,
+      col.key as SheetCellKey,
+      next,
+      !!row.local,
+    );
     if (!result.ok) {
       setRows((rs) =>
         rs.map((r) => (r.id === rowId ? { ...r, [col.key]: previous } : r)),
@@ -160,20 +177,38 @@ export function OutreachSheet({
     void commit(rowId, col, raw);
 
     const rowIdx = filteredRows.findIndex((r) => r.id === rowId);
-    const colIdx = editableColumns.findIndex((c) => c.key === col.key);
-    const nextRowIdx = rowIdx + dRow;
-    const nextColIdx = colIdx + dCol;
-
-    if (
-      rowIdx === -1 ||
-      nextRowIdx < 0 || nextRowIdx >= filteredRows.length ||
-      nextColIdx < 0 || nextColIdx >= editableColumns.length
-    ) {
+    if (rowIdx === -1) {
       setEditing(null);
       return;
     }
-    const nextRow = filteredRows[nextRowIdx];
-    const nextCol = editableColumns[nextColIdx];
+
+    let nextRow = filteredRows[rowIdx];
+    let nextCol = col;
+
+    if (dRow !== 0) {
+      // Enter: same column, next row — stop if it isn't editable there.
+      const nextRowIdx = rowIdx + dRow;
+      if (nextRowIdx < 0 || nextRowIdx >= filteredRows.length) {
+        setEditing(null);
+        return;
+      }
+      nextRow = filteredRows[nextRowIdx];
+      if (!col.editable && !nextRow.local) {
+        setEditing(null);
+        return;
+      }
+    } else {
+      // Tab: next editable column within this row's set.
+      const cols = editableCols(nextRow);
+      const colIdx = cols.findIndex((c) => c.key === col.key);
+      const nextColIdx = colIdx + dCol;
+      if (colIdx === -1 || nextColIdx < 0 || nextColIdx >= cols.length) {
+        setEditing(null);
+        return;
+      }
+      nextCol = cols[nextColIdx];
+    }
+
     setEditing({ rowId: nextRow.id, colKey: nextCol.key });
     setDraft(displayValue(nextRow, nextCol));
     skipBlurRef.current = false;
@@ -265,6 +300,7 @@ export function OutreachSheet({
     const value = displayValue(row, col);
 
     if (col.key === "businessName") {
+      if (row.local && !value) return <span className="text-faint">—</span>;
       const label = value || "Untitled";
       return row.leadId ? (
         <Link
@@ -323,6 +359,19 @@ export function OutreachSheet({
     return <span className="block truncate">{value}</span>;
   }
 
+  async function handleAddRows() {
+    setAddingRows(true);
+    setError(null);
+    const result = await addSheetRows();
+    if (result.ok && result.rows) {
+      const added = result.rows;
+      setRows((rs) => [...rs, ...added]);
+    } else {
+      setError(result.error ?? "Couldn't add rows.");
+    }
+    setAddingRows(false);
+  }
+
   return (
     <div className="space-y-3">
       {/* Toolbar */}
@@ -333,9 +382,21 @@ export function OutreachSheet({
           placeholder="Search prospects…"
           className="h-9 w-64 rounded-md border border-border bg-surface-2 px-3 text-sm text-fg placeholder:text-faint focus:border-accent focus:outline-none"
         />
-        <span className="text-xs text-faint">
-          {filteredRows.length} of {rows.length} prospect{rows.length !== 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-faint">
+            {filteredRows.length} of {rows.length} row{rows.length !== 1 ? "s" : ""}
+          </span>
+          {canAddRows && !readOnly ? (
+            <button
+              type="button"
+              onClick={handleAddRows}
+              disabled={addingRows}
+              className="h-9 rounded-md border border-border bg-surface-2 px-3 text-xs font-medium text-fg hover:border-accent disabled:opacity-50"
+            >
+              {addingRows ? "Adding…" : "+ Add 10 rows"}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {error ? (
@@ -358,7 +419,11 @@ export function OutreachSheet({
                     col.editable && !readOnly ? "text-muted" : "text-faint",
                     col.width,
                   )}
-                  title={col.editable ? undefined : "Set by Elenos"}
+                  title={
+                    col.editable
+                      ? undefined
+                      : "Set by Elenos on assigned prospects — editable on your own rows"
+                  }
                 >
                   {col.label}
                 </th>
@@ -374,7 +439,7 @@ export function OutreachSheet({
                 {COLUMNS.map((col) => {
                   const isEditing =
                     editing?.rowId === row.id && editing.colKey === col.key;
-                  const canEdit = col.editable && !readOnly;
+                  const canEdit = (col.editable || !!row.local) && !readOnly;
                   return (
                     <td
                       key={col.key}
@@ -411,7 +476,7 @@ export function OutreachSheet({
       <p className="text-[11px] text-faint">
         {readOnly
           ? "Preview — the rep edits this sheet."
-          : "Click a cell to edit · Enter commits & moves down · Tab moves right · Esc cancels · Business name opens the full lead brief · Dimmed columns are set by Elenos"}
+          : "Click a cell to edit · Enter commits & moves down · Tab moves right · Esc cancels · Business name opens the full lead brief · On assigned prospects the dimmed columns are set by Elenos — blank rows are all yours to fill"}
       </p>
     </div>
   );

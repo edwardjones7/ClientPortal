@@ -8,7 +8,16 @@ import {
   SHEET_CHANNELS,
   SHEET_OUTCOMES,
   type ActivityUpdate,
+  type SheetRow,
 } from "@/lib/lead-engine";
+import {
+  addLocalRows,
+  updateLocalRow,
+  ADD_ROWS_BATCH,
+  LOCAL_EDITABLE_KEYS,
+  type LocalEditableKey,
+  type LocalRowUpdate,
+} from "@/lib/rep-rows";
 
 export interface TouchFormState {
   ok?: boolean;
@@ -101,25 +110,59 @@ const EDITABLE_KEYS = [
 
 export type EditableKey = (typeof EDITABLE_KEYS)[number];
 
+/** Any cell the sheet can save: engine activity columns or a local row's full set. */
+export type SheetCellKey = EditableKey | LocalEditableKey;
+
 export interface CellSaveResult {
   ok: boolean;
   error?: string;
 }
 
 /**
- * Save a single cell from the rep's spreadsheet view. The lead engine
- * enforces row ownership and the activity-only column set — this action
- * shapes one key/value into an update.
+ * Save a single cell from the rep's spreadsheet view. Engine rows go to the
+ * lead engine (which enforces row ownership and the activity-only column
+ * set); the rep's own rows (`local`) go to portal.rep_prospects, where every
+ * column is theirs and RLS enforces ownership.
  */
 export async function saveSheetCell(
   rowId: string,
-  key: EditableKey,
+  key: SheetCellKey,
   value: string | number | null,
+  local = false,
 ): Promise<CellSaveResult> {
   const user = await getSessionUser();
   if (!user || user.profile.role !== "employee") {
     return { ok: false, error: "Only reps can edit their sheet." };
   }
+
+  if (local) {
+    if (!rowId || !(LOCAL_EDITABLE_KEYS as readonly string[]).includes(key)) {
+      return { ok: false, error: "That column can't be edited." };
+    }
+    const updates: LocalRowUpdate = {};
+    if (key === "touchCount") {
+      const n =
+        typeof value === "number" ? value : Number.parseInt(String(value), 10);
+      updates.touchCount = Number.isFinite(n) ? Math.max(0, n) : null;
+    } else if (key === "status") {
+      const s = String(value ?? "").trim();
+      if (!(SHEET_STATUSES as readonly string[]).includes(s)) {
+        return { ok: false, error: "Pick a valid status." };
+      }
+      updates.status = s;
+    } else {
+      const s =
+        typeof value === "string" ? value.trim().slice(0, 5000) : value;
+      updates[key as Exclude<LocalEditableKey, "touchCount" | "status">] = (
+        s === "" ? null : s
+      ) as never;
+    }
+    const result = await updateLocalRow(rowId, updates);
+    if (!result.ok) return result;
+    revalidatePath("/outreach");
+    return { ok: true };
+  }
+
   if (!rowId || !(EDITABLE_KEYS as readonly string[]).includes(key)) {
     return { ok: false, error: "That column can't be edited." };
   }
@@ -137,7 +180,7 @@ export async function saveSheetCell(
     updates.status = s;
   } else {
     const s = typeof value === "string" ? value.trim() : value;
-    updates[key] = (s === "" ? null : s) as never;
+    updates[key as EditableKey] = (s === "" ? null : s) as never;
   }
 
   const result = await updateSheetRow(rowId, user.email, updates);
@@ -145,4 +188,24 @@ export async function saveSheetCell(
 
   revalidatePath("/outreach");
   return { ok: true };
+}
+
+export interface AddRowsResult {
+  ok: boolean;
+  rows?: SheetRow[];
+  error?: string;
+}
+
+/** Append a batch of blank rows to the rep's own section of the sheet. */
+export async function addSheetRows(): Promise<AddRowsResult> {
+  const user = await getSessionUser();
+  if (!user || user.profile.role !== "employee") {
+    return { ok: false, error: "Only reps can edit their sheet." };
+  }
+
+  const rows = await addLocalRows(user.id, ADD_ROWS_BATCH);
+  if (rows.length === 0) return { ok: false, error: "Couldn't add rows." };
+
+  revalidatePath("/outreach");
+  return { ok: true, rows };
 }

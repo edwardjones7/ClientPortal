@@ -5,6 +5,7 @@ import { Panel } from "@/components/ui/Panel";
 import { OutreachSheet } from "@/components/rep/OutreachSheet";
 import { requireMember, getViewAsRepEmail } from "@/lib/auth";
 import { fetchRepSheet } from "@/lib/lead-engine";
+import { ensureLocalRows, fetchLocalRowsByEmail } from "@/lib/rep-rows";
 
 export const metadata: Metadata = { title: "Outreach" };
 
@@ -43,7 +44,17 @@ export default async function OutreachPage() {
     );
   }
 
-  const rows = result.data.prospects;
+  // The rep's own rows (the blank outline they fill in themselves) sit
+  // below the lead-engine assignments. First visit seeds the blanks;
+  // previews only read what the rep already has.
+  const localRows = previewing
+    ? await fetchLocalRowsByEmail(sheetEmail)
+    : await ensureLocalRows(user.id);
+  const rows = [...result.data.prospects, ...localRows];
+
+  const filled = rows.filter(
+    (r) => !r.local || r.businessName.trim() !== "",
+  ).length;
   const worked = rows.filter((r) => (r.touchCount ?? 0) > 0).length;
   const booked = rows.filter((r) => r.status === "Booked").length;
 
@@ -52,9 +63,13 @@ export default async function OutreachPage() {
       <PageHeading
         no="01"
         title="Outreach"
-        description={`${rows.length} prospect${rows.length === 1 ? "" : "s"} on your sheet · ${worked} worked · ${booked} booked`}
+        description={`${filled} prospect${filled === 1 ? "" : "s"} on your sheet · ${worked} worked · ${booked} booked`}
       />
-      <OutreachSheet rows={rows} readOnly={previewing} />
+      <OutreachSheet
+        rows={rows}
+        readOnly={previewing}
+        canAddRows={!previewing}
+      />
     </div>
   );
 }
