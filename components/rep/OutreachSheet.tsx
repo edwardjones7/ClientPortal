@@ -405,8 +405,11 @@ export function OutreachSheet({
         </p>
       ) : null}
 
-      {/* Grid */}
-      <div className="max-h-[calc(100vh-260px)] overflow-auto rounded-lg border border-border">
+      {/* Grid — w-full + min-w-0 keeps the scroll box bounded to the
+          content column so the wide table scrolls inside it; max-h-[70vh]
+          keeps the horizontal scrollbar on-screen (the preview banner can
+          otherwise push a 100vh box's bottom past the fold). */}
+      <div className="w-full min-w-0 max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-border">
         <table className="min-w-max border-collapse text-xs">
           <thead className="sticky top-0 z-10">
             <tr className="bg-surface-2">
