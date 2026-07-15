@@ -9,8 +9,10 @@ import "server-only";
  *   PATCH {LEAD_ENGINE_URL}/api/portal/prospects/<id>
  *
  * Auth: Bearer LEAD_ENGINE_PORTAL_SECRET (the lead engine's
- * PORTAL_API_SECRET). The rep is identified by their login email, which
- * must match a Sales Rep entry in the lead engine (Admin > Sales Reps).
+ * PORTAL_API_SECRET). The rep is identified by their login email; rows show
+ * up once that email matches a Sales Rep entry in the lead engine
+ * (Admin > Sales Reps) with prospects assigned. Until then the rep sees a
+ * blank sheet, not an error.
  */
 
 export interface SheetRow {
@@ -111,10 +113,11 @@ export async function fetchRepSheet(
   }
 
   if (res.status === 404) {
+    // Rep isn't registered in the lead engine yet — every rep still gets a
+    // blank sheet; rows appear once prospects are assigned to them.
     return {
-      ok: false,
-      error:
-        "No outreach sheet is set up for this account yet. Ask Elenos to add you as a rep.",
+      ok: true,
+      data: { rep: { id: "", name: "", email: repEmail }, prospects: [] },
     };
   }
   if (!res.ok) {

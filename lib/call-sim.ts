@@ -444,13 +444,13 @@ export const SIM_QUESTIONS: SimQuestion[] = [
     who: "Spouse-checking owner",
     q: "I need to run this by my wife first — she handles the money.",
     opts: [
+      "Fair — quick gut check first, though: if she said “your call,” is this a yes? … Then let’s make it official right now. You run the shop and you feel this problem every day — walk in tonight sharing a decision, not asking permission.",
       "Smart — make it a joint call. What will she want to know? I’ll arm you with those answers now, and let’s hold fifteen minutes Thursday so you’re not defending it solo.",
       "Smart — and let me make her read easy: a one-page summary tonight, numbers, timeline, what you get. Five minutes of her time and you two can decide on your own schedule.",
       "Smart — quick question first, though: what would she need to see for this to be a yes? If I know her sticking point in advance, the proposal can answer it before she asks.",
-      "Smart — and to give you two something concrete to weigh, I’ll send both versions: the full build and a leaner starting point, so the conversation is which, not whether.",
     ],
     a: 0,
-    x: "Arm them AND book the joint call — both halves, or the deal dies silently. The one-pager travels alone into a decision you’re not in; probing her objection without the meeting is half the move; two price options invites picking the small one.",
+    x: "Isolate and close the buyer on the phone — if it’s a yes when it’s their call, get the yes now; “the wife” is usually a polite exit, and tonight becomes an announcement instead of a pitch. The joint call hands your close to a meeting you don’t control; the one-pager travels alone into a decision you’re not in; probing her sticking point postpones the only yes that matters.",
   },
   {
     cat: "r",
