@@ -393,7 +393,7 @@ export function OutreachSheet({
               disabled={addingRows}
               className="h-9 rounded-md border border-border bg-surface-2 px-3 text-xs font-medium text-fg hover:border-accent disabled:opacity-50"
             >
-              {addingRows ? "Adding…" : "+ Add 10 rows"}
+              {addingRows ? "Adding…" : "+ Add row"}
             </button>
           ) : null}
         </div>

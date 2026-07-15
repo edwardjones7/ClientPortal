@@ -16,8 +16,8 @@ import type { SheetRow } from "@/lib/lead-engine";
 /** Blank rows seeded on a rep's first visit to /outreach. */
 export const BLANK_ROW_COUNT = 30;
 
-/** Rows appended per click of the sheet's "Add rows" button. */
-export const ADD_ROWS_BATCH = 10;
+/** Rows appended per click of the sheet's "Add row" button. */
+export const ADD_ROWS_BATCH = 1;
 
 /** Every column the rep may edit on their own rows. */
 export const LOCAL_EDITABLE_KEYS = [
