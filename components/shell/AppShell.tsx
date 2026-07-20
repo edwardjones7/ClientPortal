@@ -24,7 +24,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col md:flex-row">
+    <div className="flex w-full flex-1 flex-col md:flex-row">
       {/* Sidebar */}
       <aside className="flex shrink-0 flex-col border-border md:w-60 md:border-r">
         <div className="flex items-center justify-between px-5 py-5 md:block">

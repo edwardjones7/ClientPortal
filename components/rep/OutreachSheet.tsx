@@ -415,10 +415,9 @@ export function OutreachSheet({
       {/* Grid — min-w-0 keeps the scroll box bounded to the content column
           so the wide table scrolls inside it; max-h-[70vh] keeps the
           horizontal scrollbar on-screen (the preview banner can otherwise
-          push a 100vh box's bottom past the fold). On wide screens the box
-          bleeds past the shell's max-w-6xl (up to a 1.5rem gutter from the
-          viewport edge) so fewer columns need scrolling. */}
-      <div className="min-w-0 max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-border md:mr-[min(0px,calc((72rem-100vw)/2+1.5rem))]">
+          push a 100vh box's bottom past the fold). The shell is full-width,
+          so this box already runs to the viewport edge. */}
+      <div className="min-w-0 max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-border">
         <table className="min-w-max border-collapse text-xs">
           <thead className="sticky top-0 z-10">
             <tr className="bg-surface-2">
