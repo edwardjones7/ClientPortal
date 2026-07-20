@@ -38,32 +38,34 @@ interface ColumnDef {
   width: string;
   editable: boolean;
   options?: readonly string[];
+  /** Cap on the rendered cell content — long values truncate (full value on hover). */
+  max?: string;
 }
 
 const COLUMNS: ColumnDef[] = [
   { key: "status", label: "Status", type: "select", width: "w-28", editable: true, options: STATUSES },
-  { key: "businessName", label: "Business Name", type: "text", width: "min-w-[190px]", editable: false },
-  { key: "ownerContact", label: "Owner/Contact", type: "text", width: "min-w-[130px]", editable: false },
-  { key: "phone", label: "Phone", type: "text", width: "min-w-[130px]", editable: false },
-  { key: "email", label: "Email", type: "text", width: "min-w-[180px]", editable: false },
-  { key: "websiteUrl", label: "Website", type: "text", width: "min-w-[150px]", editable: false },
-  { key: "city", label: "City", type: "text", width: "min-w-[100px]", editable: false },
-  { key: "state", label: "State", type: "text", width: "w-16", editable: false },
-  { key: "vertical", label: "Vertical", type: "text", width: "min-w-[110px]", editable: false },
-  { key: "painSignal", label: "Pain Signal", type: "text", width: "min-w-[170px]", editable: false },
-  { key: "signalSource", label: "Signal Source", type: "text", width: "min-w-[130px]", editable: false },
-  { key: "priority", label: "Priority", type: "text", width: "w-20", editable: false },
-  { key: "prospectNotes", label: "Prospect Notes", type: "longtext", width: "min-w-[220px]", editable: false },
-  { key: "touchCount", label: "Touch #", type: "number", width: "w-20", editable: true },
-  { key: "firstTouch", label: "First Touch", type: "date", width: "w-36", editable: true },
-  { key: "lastTouch", label: "Last Touch", type: "date", width: "w-36", editable: true },
-  { key: "channel", label: "Channel", type: "select", width: "w-32", editable: true, options: CHANNELS },
-  { key: "outcome", label: "Outcome", type: "select", width: "min-w-[170px]", editable: true, options: OUTCOMES },
-  { key: "objection", label: "Objection", type: "text", width: "min-w-[130px]", editable: true },
-  { key: "stage", label: "Stage", type: "text", width: "min-w-[110px]", editable: true },
-  { key: "nextStep", label: "Next Step", type: "text", width: "min-w-[140px]", editable: true },
-  { key: "nextStepDate", label: "Next Step Date", type: "date", width: "w-36", editable: true },
-  { key: "activityNotes", label: "Activity Notes", type: "longtext", width: "min-w-[240px]", editable: true },
+  { key: "businessName", label: "Business Name", type: "text", width: "min-w-[170px]", editable: false, max: "max-w-[210px]" },
+  { key: "ownerContact", label: "Owner/Contact", type: "text", width: "min-w-[120px]", editable: false, max: "max-w-[150px]" },
+  { key: "phone", label: "Phone", type: "text", width: "min-w-[120px]", editable: false },
+  { key: "email", label: "Email", type: "text", width: "min-w-[150px]", editable: false, max: "max-w-[190px]" },
+  { key: "websiteUrl", label: "Website", type: "text", width: "min-w-[130px]", editable: false, max: "max-w-[170px]" },
+  { key: "city", label: "City", type: "text", width: "min-w-[90px]", editable: false, max: "max-w-[120px]" },
+  { key: "state", label: "State", type: "text", width: "w-14", editable: false },
+  { key: "vertical", label: "Vertical", type: "text", width: "min-w-[100px]", editable: false, max: "max-w-[130px]" },
+  { key: "painSignal", label: "Pain Signal", type: "text", width: "min-w-[150px]", editable: false, max: "max-w-[210px]" },
+  { key: "signalSource", label: "Signal Source", type: "text", width: "min-w-[110px]", editable: false, max: "max-w-[140px]" },
+  { key: "priority", label: "Priority", type: "text", width: "w-16", editable: false },
+  { key: "prospectNotes", label: "Prospect Notes", type: "longtext", width: "min-w-[200px]", editable: false, max: "max-w-[250px]" },
+  { key: "touchCount", label: "Touch #", type: "number", width: "w-16", editable: true },
+  { key: "firstTouch", label: "First Touch", type: "date", width: "w-32", editable: true },
+  { key: "lastTouch", label: "Last Touch", type: "date", width: "w-32", editable: true },
+  { key: "channel", label: "Channel", type: "select", width: "w-28", editable: true, options: CHANNELS },
+  { key: "outcome", label: "Outcome", type: "select", width: "min-w-[160px]", editable: true, options: OUTCOMES },
+  { key: "objection", label: "Objection", type: "text", width: "min-w-[120px]", editable: true, max: "max-w-[160px]" },
+  { key: "stage", label: "Stage", type: "text", width: "min-w-[100px]", editable: true, max: "max-w-[130px]" },
+  { key: "nextStep", label: "Next Step", type: "text", width: "min-w-[130px]", editable: true, max: "max-w-[170px]" },
+  { key: "nextStepDate", label: "Next Step Date", type: "date", width: "w-32", editable: true },
+  { key: "activityNotes", label: "Activity Notes", type: "longtext", width: "min-w-[220px]", editable: true, max: "max-w-[280px]" },
 ];
 
 const SEARCH_KEYS: (keyof SheetRow)[] = [
@@ -305,13 +307,13 @@ export function OutreachSheet({
       return row.leadId ? (
         <Link
           href={`/leads/${row.leadId}`}
-          className="block truncate font-medium text-fg hover:text-accent-fg hover:underline"
+          className={cx("block truncate font-medium text-fg hover:text-accent-fg hover:underline", col.max)}
           title="Open the full lead brief"
         >
           {label}
         </Link>
       ) : (
-        <span className="block truncate font-medium text-fg">{label}</span>
+        <span className={cx("block truncate font-medium text-fg", col.max)}>{label}</span>
       );
     }
     if (col.key === "status" && value) {
@@ -341,7 +343,8 @@ export function OutreachSheet({
           href={value}
           target="_blank"
           rel="noreferrer"
-          className="block max-w-[200px] truncate text-accent-fg hover:underline"
+          className={cx("block truncate text-accent-fg hover:underline", col.max ?? "max-w-[200px]")}
+          title={value}
         >
           {value.replace(/^https?:\/\//, "")}
         </a>
@@ -351,12 +354,16 @@ export function OutreachSheet({
 
     if (col.type === "longtext" || col.key === "painSignal") {
       return (
-        <span className="block max-w-[280px] truncate" title={value}>
+        <span className={cx("block truncate", col.max ?? "max-w-[280px]")} title={value}>
           {value}
         </span>
       );
     }
-    return <span className="block truncate">{value}</span>;
+    return (
+      <span className={cx("block truncate", col.max)} title={col.max ? value : undefined}>
+        {value}
+      </span>
+    );
   }
 
   async function handleAddRows() {
@@ -405,11 +412,13 @@ export function OutreachSheet({
         </p>
       ) : null}
 
-      {/* Grid — w-full + min-w-0 keeps the scroll box bounded to the
-          content column so the wide table scrolls inside it; max-h-[70vh]
-          keeps the horizontal scrollbar on-screen (the preview banner can
-          otherwise push a 100vh box's bottom past the fold). */}
-      <div className="w-full min-w-0 max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-border">
+      {/* Grid — min-w-0 keeps the scroll box bounded to the content column
+          so the wide table scrolls inside it; max-h-[70vh] keeps the
+          horizontal scrollbar on-screen (the preview banner can otherwise
+          push a 100vh box's bottom past the fold). On wide screens the box
+          bleeds past the shell's max-w-6xl (up to a 1.5rem gutter from the
+          viewport edge) so fewer columns need scrolling. */}
+      <div className="min-w-0 max-h-[70vh] overflow-x-auto overflow-y-auto rounded-lg border border-border md:mr-[min(0px,calc((72rem-100vw)/2+1.5rem))]">
         <table className="min-w-max border-collapse text-xs">
           <thead className="sticky top-0 z-10">
             <tr className="bg-surface-2">
